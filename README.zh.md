@@ -1,5 +1,9 @@
 # dsh-task-dag
 
+[![CI](https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml/badge.svg)](https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LeemanCheung/dsh-task-dag)](https://github.com/LeemanCheung/dsh-task-dag/releases/latest)
+[![License](https://img.shields.io/github/license/LeemanCheung/dsh-task-dag)](LICENSE)
+
 [English](README.md)
 
 DeepSeek Harness Web 的持久实时任务 DAG 插件，将当前会话、委派子代理与持久工作流运行展示为一张自顶向下的依赖图。
@@ -37,6 +41,10 @@ dsh plugin --profile web remove dsh-task-dag
 - 持久 `workflow-run` Conversation Node：工作流阶段、成员与结果。
 
 插件不会添加模型工具、Prompt、Schema、RPC 轮询或进程内工作流存储。
+
+## 安全与权限
+
+这是一个仅运行在浏览器中的只读可视化插件。它只消费 DSH 已有的 Client Session 投影，不读取工作区文件、不执行命令、不发起网络连接、不注册模型工具，也不持久化用户内容。安全报告方式和信任边界见 [SECURITY.md](SECURITY.md)。
 
 ## 开发
 

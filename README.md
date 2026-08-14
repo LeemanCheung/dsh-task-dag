@@ -1,5 +1,9 @@
 # dsh-task-dag
 
+[![CI](https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml/badge.svg)](https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LeemanCheung/dsh-task-dag)](https://github.com/LeemanCheung/dsh-task-dag/releases/latest)
+[![License](https://img.shields.io/github/license/LeemanCheung/dsh-task-dag)](LICENSE)
+
 [中文](README.zh.md)
 
 A persistent live DAG view for DeepSeek Harness Web. It visualizes the current Session, delegated subagents, and durable workflow runs in one top-to-bottom dependency graph.
@@ -37,6 +41,10 @@ The plugin is client-driven. It reads:
 - durable `workflow-run` Conversation Nodes for workflow phases, members, and outcomes.
 
 It does not add model tools, prompts, schemas, RPC polling, or process-local workflow storage.
+
+## Security and permissions
+
+This is a browser-only, read-only visualization plugin. It consumes DSH's existing Client Session projections and does not read workspace files, execute commands, open network connections, register model tools, or persist user content. See [SECURITY.md](SECURITY.md) for the reporting policy and trust boundaries.
 
 ## Development
 

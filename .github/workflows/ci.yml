@@ -18,3 +18,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Verify committed browser bundle
+        run: git diff --exit-code -- lib/client.js

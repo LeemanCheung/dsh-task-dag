@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://awesome.re"><img alt="Awesome" src="https://awesome.re/badge.svg"></a>
   <a href="https://awesome-dsh-plugin.com"><img alt="Awesome DSH Plugin" src="https://awesome-dsh-plugin.com/badge.svg"></a>
   <a href="https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/LeemanCheung/dsh-task-dag/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/LeemanCheung/dsh-task-dag"></a>
@@ -16,7 +17,7 @@
   English · <a href="README.zh.md">中文</a>
 </p>
 
-![dsh-task-dag interface preview](docs/task-dag-preview.svg)
+![dsh-task-dag visual overview](docs/task-dag-preview.svg)
 
 ## At a glance
 
@@ -30,6 +31,12 @@
 | Direct navigation | Opens healthy, list-visible subagent Sessions from their graph nodes. |
 | Native presentation | Uses DSH theme semantics, restrained status colors, and custom SVG icons in light and dark modes. |
 | Lifecycle safe | Registers UI and styles through Cordis lifecycle ownership and removes them on unload. |
+
+## Live screenshot
+
+Captured from a running DSH Web Session with task labels anonymized. The panel, layout, edges, controls, and status presentation are the actual plugin UI.
+
+![dsh-task-dag running in DSH Web](docs/screenshot.png)
 
 ## Install
 

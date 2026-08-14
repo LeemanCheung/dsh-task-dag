@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://awesome.re"><img alt="Awesome" src="https://awesome.re/badge.svg"></a>
   <a href="https://awesome-dsh-plugin.com"><img alt="Awesome DSH Plugin" src="https://awesome-dsh-plugin.com/badge.svg"></a>
   <a href="https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/LeemanCheung/dsh-task-dag/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/LeemanCheung/dsh-task-dag"></a>
@@ -16,7 +17,7 @@
   <a href="README.md">English</a> · 中文
 </p>
 
-![dsh-task-dag 界面预览](docs/task-dag-preview.svg)
+![dsh-task-dag 视觉概览](docs/task-dag-preview.svg)
 
 ## 一览
 
@@ -30,6 +31,12 @@
 | 直接导航 | 点击健康且在 Session 列表中的子代理节点即可打开对应会话。 |
 | 原生呈现 | 使用 DSH 主题语义、克制的状态色与自绘 SVG 图标，适配浅色和深色模式。 |
 | 生命周期安全 | UI 与样式均由 Cordis 生命周期托管，卸载时完整移除。 |
+
+## 实际运行截图
+
+截图来自正在运行的 DSH Web Session，任务名称已经匿名化；面板、布局、连线、控件与状态呈现均为插件真实界面。
+
+![dsh-task-dag 在 DSH Web 中运行](docs/screenshot.png)
 
 ## 安装
 

@@ -1,22 +1,35 @@
-# dsh-task-dag
+<h1 align="center">dsh-task-dag</h1>
 
-[![CI](https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml/badge.svg)](https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/LeemanCheung/dsh-task-dag)](https://github.com/LeemanCheung/dsh-task-dag/releases/latest)
-[![License](https://img.shields.io/github/license/LeemanCheung/dsh-task-dag)](LICENSE)
+<p align="center">
+  DeepSeek Harness Web 的持久实时任务拓扑。<br>
+  用一张可导航 DAG 展示当前会话、委派子代理与持久工作流。
+</p>
 
-[English](README.md)
+<p align="center">
+  <a href="https://awesome-dsh-plugin.com"><img alt="Awesome DSH Plugin" src="https://awesome-dsh-plugin.com/badge.svg"></a>
+  <a href="https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/LeemanCheung/dsh-task-dag/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/LeemanCheung/dsh-task-dag/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/LeemanCheung/dsh-task-dag"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/LeemanCheung/dsh-task-dag"></a>
+</p>
 
-DeepSeek Harness Web 的持久实时任务 DAG 插件，将当前会话、委派子代理与持久工作流运行展示为一张自顶向下的依赖图。
+<p align="center">
+  <a href="README.md">English</a> · 中文
+</p>
 
-## 功能
+![dsh-task-dag 界面预览](docs/task-dag-preview.svg)
 
-- 从 DSH Session 快照与持久 `workflow-run` Conversation Node 构图。
-- 不依赖进程内缓存，DSH 重启后仍可恢复工作流历史。
-- 工作流成员归入工作流节点，避免父会话到成员的重复直连边。
-- 使用响应式投影更新，不轮询 Host。
-- 点击可导航的子代理节点即可打开对应会话。
-- 支持适应视口、原始尺寸、根节点自动居中、面板拖拽、键盘关闭和手动刷新目录。
-- 使用 DSH semantic theme tokens 与原生 SVG 图标，自动适配浅色和深色主题。
+## 一览
+
+`dsh-task-dag` 将 DSH 已有的 Client 投影转换为自顶向下的任务依赖图。插件不维护另一套工作流数据库，也不发送轮询请求；Session 状态变化时，图会随投影实时变化。
+
+| 能力 | 行为 |
+| --- | --- |
+| 实时拓扑 | 响应 Session 与子代理目录快照，无需 Host 轮询。 |
+| 持久工作流 | DSH 重启后从 `workflow-run` Conversation Node 恢复阶段和成员。 |
+| 清晰归属 | 将工作流成员归入工作流节点，避免根会话到成员的重复直连边。 |
+| 直接导航 | 点击健康且在 Session 列表中的子代理节点即可打开对应会话。 |
+| 原生呈现 | 使用 DSH 主题语义、克制的状态色与自绘 SVG 图标，适配浅色和深色模式。 |
+| 生命周期安全 | UI 与样式均由 Cordis 生命周期托管，卸载时完整移除。 |
 
 ## 安装
 
@@ -26,35 +39,68 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag
 
 首次安装后重启一次当前 DSH Web 进程并刷新页面，随后可在会话标题栏看到“任务 DAG”入口。
 
-卸载：
+固定安装指定版本：
 
 ```powershell
-dsh plugin --profile web remove dsh-task-dag
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.1.0
 ```
+
+## 使用任务图
+
+| 操作 | 结果 |
+| --- | --- |
+| 点击“任务 DAG” | 打开当前 Session 范围内的任务图面板。 |
+| 点击子代理节点 | 当节点存在于 Session 列表时，打开对应会话。 |
+| 切换适应模式 | 在全图概览和原始尺寸可滚动画布之间切换。 |
+| 手动刷新 | 刷新正在观察的子代理目录；工作流节点仍由投影驱动。 |
+| 拖动标题栏 | 移动面板，同时不会捕获工具栏按钮事件。 |
+| 按 `Escape` 或关闭按钮 | 关闭面板，并将焦点还给入口按钮。 |
+
+状态颜色仅用于业务蓝、成功绿、错误红和警告琥珀色；其余层级通过间距、排版、边框与线型表达。
 
 ## 架构
 
-插件完全由 Client 投影驱动，读取：
+![dsh-task-dag 投影架构](docs/architecture.svg)
 
-- `SessionListState.byId` 与 `parentId`：子代理血缘。
-- `SessionListState.subagentsByParent`：标签、模式与活动状态。
-- 持久 `workflow-run` Conversation Node：工作流阶段、成员与结果。
+浏览器插件组合三类持久 Client 数据源：
 
-插件不会添加模型工具、Prompt、Schema、RPC 轮询或进程内工作流存储。
+- `SessionListState.byId` 与 `parentId` 提供子代理血缘。
+- `SessionListState.subagentsByParent` 提供标签、模式、活动状态与目录健康信息。
+- `workflow-run` Conversation Node 提供工作流阶段、成员与结果。
+
+插件拥有的图模型会统一血缘、插入工作流分组节点、派生导航能力、排布稳定的垂直层级，最后渲染到 `conversation.session.header.actions`。
+
+整个过程不存在进程内工作流缓存、模型 Prompt 注入、模型 Tool、Host RPC 端点或轮询循环。
 
 ## 安全与权限
 
-这是一个仅运行在浏览器中的只读可视化插件。它只消费 DSH 已有的 Client Session 投影，不读取工作区文件、不执行命令、不发起网络连接、不注册模型工具，也不持久化用户内容。安全报告方式和信任边界见 [SECURITY.md](SECURITY.md)。
+这是一个仅运行在浏览器中的只读可视化插件。它不读取工作区文件、不执行命令、不发起网络连接、不注册模型工具，也不持久化 Session 内容或凭据。
+
+安全报告方式与完整信任边界见 [SECURITY.md](SECURITY.md)。仓库已启用私密漏洞报告。
 
 ## 开发
+
+要求 Node.js 20 或更高版本。
 
 ```bash
 npm install
 npm run check
 ```
 
-`npm run check` 会重建浏览器模块，并执行语法检查与 jsdom 交互冒烟测试，覆盖工作流分组、适应视口、关闭控件和节点导航。
+检查流程会：
+
+1. 校验源码语法；
+2. 重建预编译浏览器模块；
+3. 校验生成 bundle 的语法；
+4. 运行 jsdom 交互冒烟测试，覆盖工作流分组、适应模式、关闭控件和节点导航；
+5. 在 CI 中确认提交的 `lib/client.js` 可以由源码稳定重现。
+
+## 卸载
+
+```powershell
+dsh plugin --profile web remove dsh-task-dag
+```
 
 ## 许可证
 
-[MIT](LICENSE)
+[MIT](LICENSE) © LeemanCheung

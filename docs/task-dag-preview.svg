@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">dsh-task-dag live graph preview</title>
+  <desc id="desc">A DeepSeek Harness styled directed graph showing a current Session, workflow groups, and subagent tasks.</desc>
+  <style>
+    :root { --bg:#f7f8fa; --surface:#ffffff; --surface-2:#f1f3f5; --line:#c9cdd2; --border:#dfe2e5; --text:#17191c; --muted:#747a82; --caption:#9aa0a8; --brand:#17191c; --brand-text:#ffffff; --blue:#4b75ff; --blue-soft:#e9efff; --green:#20b26b; --amber:#e99a17; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#17191c; --surface:#23262a; --surface-2:#2b2e33; --line:#50555d; --border:#383c42; --text:#f2f3f5; --muted:#a8adb5; --caption:#777d86; --brand:#f2f3f5; --brand-text:#17191c; --blue:#6f91ff; --blue-soft:#27345c; --green:#43c982; --amber:#f0aa36; } }
+    text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .label { fill:var(--text); font-size:15px; font-weight:600; }
+    .meta { fill:var(--muted); font-size:12px; }
+    .root-label { fill:var(--brand-text); font-size:16px; font-weight:650; }
+    .root-meta { fill:var(--brand-text); opacity:.66; font-size:12px; }
+    .card { fill:var(--surface); stroke:var(--border); stroke-width:1.2; }
+    .edge { fill:none; stroke:var(--line); stroke-width:1.5; }
+    .workflow-edge { fill:none; stroke:var(--caption); stroke-width:1.5; stroke-dasharray:5 5; }
+    .pill-text { fill:var(--muted); font-size:10px; font-weight:700; letter-spacing:1.1px; }
+    [fill="var(--bg)"] { fill:#101216; } [stroke="var(--bg)"] { stroke:#101216; }
+    [fill="var(--surface)"] { fill:#1a1d22; } [stroke="var(--surface)"] { stroke:#1a1d22; }
+    [fill="var(--surface-2)"] { fill:#22262c; }
+    [fill="var(--border)"] { fill:#2b3038; } [stroke="var(--border)"] { stroke:#2b3038; }
+    [fill="var(--line)"] { fill:#46505c; } [stroke="var(--line)"] { stroke:#46505c; }
+    [fill="var(--text)"] { fill:#f4f6f8; } [stroke="var(--text)"] { stroke:#f4f6f8; }
+    [fill="var(--muted)"] { fill:#9da5af; } [stroke="var(--muted)"] { stroke:#9da5af; }
+    [fill="var(--caption)"] { fill:#69727e; } [stroke="var(--caption)"] { stroke:#69727e; }
+    [fill="var(--brand)"] { fill:#f4f6f8; } [stroke="var(--brand)"] { stroke:#f4f6f8; }
+    [fill="var(--brand-text)"] { fill:#111318; } [stroke="var(--brand-text)"] { stroke:#111318; }
+    [fill="var(--blue)"] { fill:#5f82ff; } [stroke="var(--blue)"] { stroke:#5f82ff; }
+    [fill="var(--blue-soft)"] { fill:#253156; }
+    [fill="var(--green)"] { fill:#38c780; } [stroke="var(--green)"] { stroke:#38c780; }
+    .label { fill:#f4f6f8; } .meta,.pill-text { fill:#9da5af; } .root-label,.root-meta { fill:#111318; }
+    .card { fill:#1a1d22; stroke:#2b3038; } .edge { stroke:#46505c; } .workflow-edge { stroke:#69727e; }
+  </style>
+  <defs>
+    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--border)" opacity=".55"/></pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#000000" flood-opacity=".08"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 7 4 0 8Z" fill="var(--line)"/></marker>
+  </defs>
+
+  <rect x="1" y="1" width="1198" height="518" rx="20" fill="var(--bg)" stroke="var(--border)"/>
+  <rect x="1" y="78" width="1198" height="441" rx="0" fill="url(#dots)" opacity=".72"/>
+  <path d="M1 78H1199" stroke="var(--border)"/>
+
+  <g transform="translate(28 20)">
+    <rect width="42" height="42" rx="12" fill="var(--brand)"/>
+    <path d="M21 13v6M12 27v-5h18v5M21 19H12v3M21 19h9v3" fill="none" stroke="var(--brand-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="17" y="8" width="8" height="6" rx="2" fill="none" stroke="var(--brand-text)" stroke-width="2"/>
+    <rect x="8" y="27" width="8" height="6" rx="2" fill="none" stroke="var(--brand-text)" stroke-width="2"/>
+    <rect x="26" y="27" width="8" height="6" rx="2" fill="none" stroke="var(--brand-text)" stroke-width="2"/>
+  </g>
+  <text x="84" y="38" fill="var(--text)" font-size="18" font-weight="700">dsh-task-dag</text>
+  <text x="84" y="57" fill="var(--muted)" font-size="12">Live subagent and workflow topology for DeepSeek Harness</text>
+
+  <g transform="translate(850 24)">
+    <rect width="86" height="26" rx="13" fill="var(--surface)" stroke="var(--border)"/><circle cx="16" cy="13" r="4" fill="var(--blue)"/><text x="29" y="17" class="pill-text">LIVE</text>
+  </g>
+  <g transform="translate(946 24)">
+    <rect width="118" height="26" rx="13" fill="var(--surface)" stroke="var(--border)"/><path d="M14 13l4 4 7-8" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="33" y="17" class="pill-text">DURABLE</text>
+  </g>
+  <g transform="translate(1074 24)">
+    <rect width="98" height="26" rx="13" fill="var(--surface)" stroke="var(--border)"/><path d="M15 9v8M20 9v8" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/><text x="31" y="17" class="pill-text">NO POLL</text>
+  </g>
+
+  <path class="edge" marker-end="url(#arrow)" d="M600 196C600 235 250 226 250 266"/>
+  <path class="workflow-edge" marker-end="url(#arrow)" d="M600 196C600 235 600 226 600 266"/>
+  <path class="edge" marker-end="url(#arrow)" d="M600 196C600 235 950 226 950 266"/>
+  <path class="edge" marker-end="url(#arrow)" d="M250 342C250 378 185 372 185 406"/>
+  <path class="edge" marker-end="url(#arrow)" d="M250 342C250 378 435 372 435 406"/>
+  <path class="workflow-edge" marker-end="url(#arrow)" d="M600 342C600 378 785 372 785 406"/>
+  <path class="edge" marker-end="url(#arrow)" d="M950 342C950 378 1035 372 1035 406"/>
+
+  <g filter="url(#shadow)">
+    <rect x="460" y="118" width="280" height="78" rx="13" fill="var(--brand)"/>
+    <rect x="478" y="136" width="36" height="36" rx="10" fill="var(--brand-text)" opacity=".12"/>
+    <path d="M489 146h14a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3h-14a3 3 0 0 1-3-3v-11a3 3 0 0 1 3-3Zm-3 5h20" fill="none" stroke="var(--brand-text)" stroke-width="1.6" stroke-linecap="round"/>
+    <text x="528" y="151" class="root-label">Current Session</text><text x="528" y="171" class="root-meta">active root · reactive projection</text>
+    <circle cx="720" cy="139" r="4" fill="var(--blue)"/>
+  </g>
+
+  <g><rect class="card" x="100" y="270" width="300" height="72" rx="12"/><rect x="116" y="286" width="34" height="34" rx="9" fill="var(--surface-2)"/><path d="M133 292v8M124 312v-7h18v7" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round"/><circle cx="133" cy="292" r="2.5" fill="none" stroke="var(--muted)" stroke-width="1.5"/><text x="164" y="300" class="label">Survey token data flow</text><text x="164" y="321" class="meta">continuable subagent</text><circle cx="380" cy="289" r="4" fill="var(--green)"/></g>
+  <g><rect class="card" x="450" y="270" width="300" height="72" rx="12"/><rect x="466" y="286" width="34" height="34" rx="9" fill="var(--blue-soft)"/><path d="M483 291v8M474 311v-7h18v7" fill="none" stroke="var(--blue)" stroke-width="1.6" stroke-linecap="round"/><circle cx="483" cy="291" r="2.5" fill="none" stroke="var(--blue)" stroke-width="1.5"/><text x="514" y="300" class="label">Workflow · Review</text><text x="514" y="321" class="meta">2 tasks · durable history</text><circle cx="730" cy="289" r="4" fill="var(--blue)"/></g>
+  <g><rect class="card" x="800" y="270" width="300" height="72" rx="12"/><rect x="816" y="286" width="34" height="34" rx="9" fill="var(--surface-2)"/><path d="M833 292v8M824 312v-7h18v7" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round"/><circle cx="833" cy="292" r="2.5" fill="none" stroke="var(--muted)" stroke-width="1.5"/><text x="864" y="300" class="label">Build native DAG UI</text><text x="864" y="321" class="meta">continuable subagent</text><circle cx="1080" cy="289" r="4" fill="var(--green)"/></g>
+
+  <g><rect class="card" x="75" y="410" width="220" height="70" rx="11"/><text x="94" y="439" class="label">Host audit</text><text x="94" y="459" class="meta">completed</text><circle cx="275" cy="429" r="4" fill="var(--green)"/></g>
+  <g><rect class="card" x="325" y="410" width="220" height="70" rx="11"/><text x="344" y="439" class="label">Client review</text><text x="344" y="459" class="meta">completed</text><circle cx="525" cy="429" r="4" fill="var(--green)"/></g>
+  <g><rect class="card" x="675" y="410" width="220" height="70" rx="11"/><text x="694" y="439" class="label">Projection test</text><text x="694" y="459" class="meta">running</text><circle cx="875" cy="429" r="4" fill="var(--blue)"/></g>
+  <g><rect class="card" x="925" y="410" width="220" height="70" rx="11"/><text x="944" y="439" class="label">Lifecycle test</text><text x="944" y="459" class="meta">completed</text><circle cx="1125" cy="429" r="4" fill="var(--green)"/></g>
+</svg>

@@ -1,0 +1,4 @@
+# Persistent Task DAG browser plugin for the Web profile.
+- insert:
+    - id: task-dag
+      name: 'dsh-task-dag'

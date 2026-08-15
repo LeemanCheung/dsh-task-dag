@@ -1,7 +1,7 @@
 <h1 align="center">dsh-task-dag</h1>
 
 <p align="center">
-  A persistent, live task topology for DeepSeek Harness Web.<br>
+  A live task topology for DeepSeek Harness Web.<br>
   See Sessions, delegated subagents, and durable workflows as one navigable DAG.
 </p>
 
@@ -30,6 +30,7 @@
 | Clear ownership | Groups workflow members under workflow nodes instead of drawing duplicate root-to-child edges. |
 | Direct navigation | Opens healthy, list-visible subagent Sessions from their graph nodes. |
 | Canvas control | Fits the whole graph or pans the original-size canvas; nodes can be dragged and keep their rearranged positions while the current Session panel is reopened. |
+| Bounded layout persistence | Manual node positions live only in the current page's current-Session React state; switching Sessions, refreshing the page, or restarting DSH restores deterministic automatic layout. Workflow topology itself is rebuilt from durable Conversation Nodes. |
 | Robust projection | Rejects broken or cyclic lineage while retaining deterministic layers for valid deep dependency chains. |
 | Native presentation | Uses DSH theme semantics, restrained status colors, and custom SVG icons in light and dark modes. |
 | Lifecycle safe | Registers UI and styles through Cordis lifecycle ownership and removes them on unload. |
@@ -83,6 +84,10 @@ The package-owned graph-model Module normalizes lineage, inserts workflow groupi
 
 There is no process-local workflow cache, model prompt contribution, model tool, Host RPC endpoint, or polling loop.
 
+### Projection boundaries
+
+Only descendants that can be traced to the current Session through `origin: "subagent"` lineage are shown. Orphans, missing-parent chains, and cycles are ignored. A catalog's `running` activity takes precedence over a completed Session summary; workflow members use their `workflow-run` status; unknown statuses render as historical/idle. If the same member appears in more than one workflow, the last parsed workflow membership owns its displayed grouping and status.
+
 ## Security and permissions
 
 This is a browser-only, read-only visualization plugin. It does not read workspace files, execute commands, open network connections, register model tools, or persist Session content and credentials.
@@ -91,7 +96,7 @@ See [SECURITY.md](SECURITY.md) for the reporting policy and complete trust bound
 
 ## Development
 
-Requirements: Node.js 20 or newer.
+The runtime package declares Node.js 20+. For development and the pinned jsdom test stack, use Node.js 20.19+, 22.13+, or 24+; CI currently runs Node.js 22.
 
 ```bash
 npm install
@@ -105,6 +110,16 @@ The check pipeline:
 3. rebuilds and validates the precompiled browser module;
 4. runs jsdom interaction smoke tests for controls, canvas panning, persistent node dragging, and node navigation;
 5. verifies in CI that committed `lib/client.js` is reproducible from source.
+
+These are pure-model and jsdom smoke checks, not a full DSH Web end-to-end suite. Theme fidelity, responsive layout, complete focus behavior, and unload behavior in a real profile still need manual or browser-E2E verification.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| **Task DAG** is missing | Confirm this is the Web profile, restart `dsh web`, and refresh the page. |
+| A node cannot open | Only Sessions that remain visible in DSH's Session list are navigable. |
+| Child status/labels look stale | Select **Refresh** to refresh observed subagent catalogs. |
 
 ## Remove
 

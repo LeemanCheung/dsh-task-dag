@@ -1,7 +1,7 @@
 <h1 align="center">dsh-task-dag</h1>
 
 <p align="center">
-  DeepSeek Harness Web 的持久实时任务拓扑。<br>
+  DeepSeek Harness Web 的实时任务拓扑。<br>
   用一张可导航 DAG 展示当前会话、委派子代理与持久工作流。
 </p>
 
@@ -30,6 +30,7 @@
 | 清晰归属 | 将工作流成员归入工作流节点，避免根会话到成员的重复直连边。 |
 | 直接导航 | 点击健康且在 Session 列表中的子代理节点即可打开对应会话。 |
 | 画布控制 | 可在全图适应与原始尺寸画布之间切换；可平移画布并拖动节点，当前 Session 关闭后再打开面板仍会保留重新布局。 |
+| 有界布局保留 | 手动节点位置只存在于当前页面、当前 Session 的 React state；切换 Session、刷新页面或重启 DSH 后恢复确定性的自动布局。工作流拓扑本身仍由持久 Conversation Node 重建。 |
 | 投影稳健性 | 会拒绝断裂或循环的血缘，同时为有效的深层依赖链生成确定性的垂直层级。 |
 | 原生呈现 | 使用 DSH 主题语义、克制的状态色与自绘 SVG 图标，适配浅色和深色模式。 |
 | 生命周期安全 | UI 与样式均由 Cordis 生命周期托管，卸载时完整移除。 |
@@ -83,6 +84,10 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.2.0
 
 整个过程不存在进程内工作流缓存、模型 Prompt 注入、模型 Tool、Host RPC 端点或轮询循环。
 
+### 投影边界
+
+仅展示通过 `origin: "subagent"` 血缘可追溯到当前 Session 的后代；孤儿、缺失父节点的链路和循环均会忽略。目录中的 `running` 活动状态优先于已完成的 Session summary；工作流成员使用其 `workflow-run` 状态；未知状态显示为历史/空闲。同一成员若出现于多个工作流，最终解析的工作流归属决定其显示分组和状态。
+
 ## 安全与权限
 
 这是一个仅运行在浏览器中的只读可视化插件。它不读取工作区文件、不执行命令、不发起网络连接、不注册模型工具，也不持久化 Session 内容或凭据。
@@ -91,7 +96,7 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.2.0
 
 ## 开发
 
-要求 Node.js 20 或更高版本。
+运行时软件包声明 Node.js 20+。开发和锁定的 jsdom 测试栈应使用 Node.js 20.19+、22.13+ 或 24+；CI 当前使用 Node.js 22。
 
 ```bash
 npm install
@@ -105,6 +110,16 @@ npm run check
 3. 重建并校验预编译浏览器模块；
 4. 运行 jsdom 交互冒烟测试，覆盖控件、画布平移、节点拖拽布局保留和节点导航；
 5. 在 CI 中确认提交的 `lib/client.js` 可以由源码稳定重现。
+
+这些是纯模型与 jsdom 冒烟检查，不是完整的 DSH Web 端到端测试。真实 profile 中的主题视觉、响应式布局、完整焦点流程和卸载行为仍需人工或浏览器 E2E 验证。
+
+## 排障
+
+| 现象 | 检查方式 |
+| --- | --- |
+| 找不到“任务 DAG”入口 | 确认使用 Web profile，重启 `dsh web` 并刷新页面。 |
+| 节点无法打开 | 仅仍显示在 DSH Session 列表中的会话可导航。 |
+| 子代理状态或标签疑似过期 | 点击“刷新”以刷新观察到的子代理目录。 |
 
 ## 卸载
 

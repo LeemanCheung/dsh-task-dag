@@ -29,6 +29,8 @@
 | 持久工作流 | DSH 重启后从 `workflow-run` Conversation Node 恢复阶段和成员。 |
 | 清晰归属 | 将工作流成员归入工作流节点，避免根会话到成员的重复直连边。 |
 | 直接导航 | 点击健康且在 Session 列表中的子代理节点即可打开对应会话。 |
+| 画布控制 | 可在全图适应与原始尺寸画布之间切换；可平移画布并拖动节点，当前 Session 关闭后再打开面板仍会保留重新布局。 |
+| 投影稳健性 | 会拒绝断裂或循环的血缘，同时为有效的深层依赖链生成确定性的垂直层级。 |
 | 原生呈现 | 使用 DSH 主题语义、克制的状态色与自绘 SVG 图标，适配浅色和深色模式。 |
 | 生命周期安全 | UI 与样式均由 Cordis 生命周期托管，卸载时完整移除。 |
 
@@ -49,7 +51,7 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag
 固定安装指定版本：
 
 ```powershell
-dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.1.0
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.2.0
 ```
 
 ## 使用任务图
@@ -57,6 +59,8 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.1.0
 | 操作 | 结果 |
 | --- | --- |
 | 点击“任务 DAG” | 打开当前 Session 范围内的任务图面板。 |
+| 拖动空白画布 | 在原始尺寸模式下平移可滚动的画布。 |
+| 拖动节点 | 调整节点位置，连线会实时同步；当前 Session 关闭并重新打开面板后仍会保留布局。 |
 | 点击子代理节点 | 当节点存在于 Session 列表时，打开对应会话。 |
 | 切换适应模式 | 在全图概览和原始尺寸可滚动画布之间切换。 |
 | 手动刷新 | 刷新正在观察的子代理目录；工作流节点仍由投影驱动。 |
@@ -75,7 +79,7 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.1.0
 - `SessionListState.subagentsByParent` 提供标签、模式、活动状态与目录健康信息。
 - `workflow-run` Conversation Node 提供工作流阶段、成员与结果。
 
-插件拥有的图模型会统一血缘、插入工作流分组节点、派生导航能力、排布稳定的垂直层级，最后渲染到 `conversation.session.header.actions`。
+插件拥有的 graph-model 模块会统一血缘、插入工作流分组节点、派生导航能力并排布稳定的垂直层级；UI 模块再将投影渲染到 `conversation.session.header.actions`。
 
 整个过程不存在进程内工作流缓存、模型 Prompt 注入、模型 Tool、Host RPC 端点或轮询循环。
 
@@ -96,10 +100,10 @@ npm run check
 
 检查流程会：
 
-1. 校验源码语法；
-2. 重建预编译浏览器模块；
-3. 校验生成 bundle 的语法；
-4. 运行 jsdom 交互冒烟测试，覆盖工作流分组、适应模式、关闭控件和节点导航；
+1. 校验源码语法及纯 graph-model 模块；
+2. 运行 graph-model 单元测试，覆盖血缘、工作流分组、稳定布局和深层链路；
+3. 重建并校验预编译浏览器模块；
+4. 运行 jsdom 交互冒烟测试，覆盖控件、画布平移、节点拖拽布局保留和节点导航；
 5. 在 CI 中确认提交的 `lib/client.js` 可以由源码稳定重现。
 
 ## 卸载

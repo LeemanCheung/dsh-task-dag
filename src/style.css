@@ -182,6 +182,17 @@
   background-position: 0 0;
   background-size: 20px 20px;
   scrollbar-color: var(--dsw-alias-scrollbar-bg-l1) transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dsh-task-dag-viewport[data-panning="true"] {
+  cursor: grabbing;
+}
+
+.dsh-task-dag-viewport:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -2px;
 }
 
 .dsh-task-dag-viewport::-webkit-scrollbar {
@@ -204,6 +215,8 @@
 .dsh-task-dag-viewport[data-fit="true"] {
   overflow: hidden;
   padding: 24px;
+  cursor: default;
+  touch-action: auto;
 }
 
 .dsh-task-dag-svg {
@@ -236,10 +249,12 @@
 .dsh-task-dag-node {
   color: var(--dsw-alias-label-tertiary);
   outline: none;
+  cursor: grab;
+  touch-action: none;
 }
 
-.dsh-task-dag-node[data-clickable="true"] {
-  cursor: pointer;
+.dsh-task-dag-node:active {
+  cursor: grabbing;
 }
 
 .dsh-task-dag-node-card {

@@ -113,9 +113,11 @@ const dictionary = {
   'node.phases': '{count} 个阶段',
   'node.phase': '阶段 · {name}',
   'node.open': '打开子代理会话 {name}',
+  'node.drag': '拖动节点 {name}',
   'panel.summary': '{nodes} 个节点 · {edges} 条依赖',
   'panel.live': '基于会话投影实时更新',
   'graph.aria': '当前会话的任务有向无环图',
+  'canvas.aria': '可拖拽平移的任务 DAG 画布',
   'button.close': '关闭任务 DAG',
   'button.fit': '适应视口',
   'button.original': '原始尺寸',
@@ -130,7 +132,7 @@ const dictionary = {
   'legend.completed': '已完成',
   'legend.failed': '失败',
   'legend.interrupted': '中断 / 取消',
-  'hint': '点击子代理节点可打开会话',
+  'hint': '拖动空白画布可平移视图；拖动节点可调整布局；点击子代理节点可打开会话',
 }
 const t = (key, values = {}) => Object.entries(values).reduce(
   (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
@@ -174,6 +176,11 @@ if (document.querySelector('.dsh-task-dag-panel') !== null) {
 await React.act(async () => { trigger.click() })
 const viewport = document.querySelector('.dsh-task-dag-viewport')
 const original = document.querySelector('[aria-label="原始尺寸"]')
+const pointer = (type, x, y, pointerId = 7) => {
+  const event = new window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 })
+  Object.defineProperty(event, 'pointerId', { value: pointerId })
+  return event
+}
 if (original === null || viewport?.getAttribute('data-fit') !== 'true') {
   throw new Error('dialog did not default to the compact fit view')
 }
@@ -181,6 +188,19 @@ await React.act(async () => { original.click() })
 const fit = document.querySelector('[aria-label="适应视口"]')
 if (fit === null || viewport?.getAttribute('data-fit') === 'true') {
   throw new Error('original-size control did not restore the scrollable canvas')
+}
+viewport.scrollLeft = 80
+viewport.scrollTop = 40
+await React.act(async () => { viewport.dispatchEvent(pointer('pointerdown', 240, 180, 5)) })
+if (viewport.getAttribute('data-panning') !== 'true') {
+  throw new Error('canvas did not enter its panning state')
+}
+await React.act(async () => {
+  viewport.dispatchEvent(pointer('pointermove', 190, 150, 5))
+  viewport.dispatchEvent(pointer('pointerup', 190, 150, 5))
+})
+if (viewport.scrollLeft !== 130 || viewport.scrollTop !== 70 || viewport.getAttribute('data-panning') === 'true') {
+  throw new Error('dragging the empty canvas did not pan and release the viewport')
 }
 await React.act(async () => { fit.click() })
 if (viewport?.getAttribute('data-fit') !== 'true') {
@@ -190,11 +210,34 @@ const workflowEdges = document.querySelectorAll('.dsh-task-dag-edge[data-workflo
 if (workflowEdges.length !== 2 || document.querySelectorAll('.dsh-task-dag-edge').length !== 2) {
   throw new Error('workflow grouping did not replace the duplicate direct child edge')
 }
-const childNode = document.querySelector('.dsh-task-dag-node[data-clickable="true"]')
-if (childNode === null) throw new Error('navigable child node did not render')
+let childNode = document.querySelector('.dsh-task-dag-node[data-clickable="true"]')
+const svg = document.querySelector('.dsh-task-dag-svg')
+if (childNode === null || svg === null) throw new Error('navigable child node did not render')
+svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 720, height: 390 })
+const initialTransform = childNode.getAttribute('transform')
+await React.act(async () => {
+  childNode.dispatchEvent(pointer('pointerdown', 150, 180))
+  childNode.dispatchEvent(pointer('pointermove', 194, 206))
+  childNode.dispatchEvent(pointer('pointerup', 194, 206))
+})
+if (childNode.getAttribute('transform') === initialTransform) {
+  throw new Error('dragging a DAG node did not update its position')
+}
+await React.act(async () => { childNode.dispatchEvent(new window.MouseEvent('click', { bubbles: true })) })
+if (openedSession !== undefined || document.querySelector('.dsh-task-dag-panel') === null) {
+  throw new Error('a drag gesture was mistaken for node navigation')
+}
+const draggedTransform = childNode.getAttribute('transform')
+const closeAfterDrag = document.querySelector('[aria-label="关闭任务 DAG"]')
+await React.act(async () => { closeAfterDrag.click() })
+await React.act(async () => { trigger.click() })
+childNode = document.querySelector('.dsh-task-dag-node[data-clickable="true"]')
+if (childNode === null || childNode.getAttribute('transform') !== draggedTransform) {
+  throw new Error('node layout did not survive closing and reopening the graph')
+}
 await React.act(async () => { childNode.dispatchEvent(new window.MouseEvent('click', { bubbles: true })) })
 if (openedSession !== 'child' || document.querySelector('.dsh-task-dag-panel') !== null) {
   throw new Error('child node did not navigate and close the dialog')
 }
 await React.act(async () => { reactRoot.unmount() })
-console.log('smoke ok: bundle, workflow grouping, dialog controls, fit, and child navigation')
+console.log('smoke ok: graph bundle, controls, canvas pan, persistent node dragging, and child navigation')

@@ -29,6 +29,8 @@
 | Durable workflows | Reconstructs workflow phases and members from `workflow-run` Conversation Nodes after restart. |
 | Clear ownership | Groups workflow members under workflow nodes instead of drawing duplicate root-to-child edges. |
 | Direct navigation | Opens healthy, list-visible subagent Sessions from their graph nodes. |
+| Canvas control | Fits the whole graph or pans the original-size canvas; nodes can be dragged and keep their rearranged positions while the current Session panel is reopened. |
+| Robust projection | Rejects broken or cyclic lineage while retaining deterministic layers for valid deep dependency chains. |
 | Native presentation | Uses DSH theme semantics, restrained status colors, and custom SVG icons in light and dark modes. |
 | Lifecycle safe | Registers UI and styles through Cordis lifecycle ownership and removes them on unload. |
 
@@ -49,7 +51,7 @@ Restart the current DSH Web process once after the first installation, then refr
 For a version-pinned installation:
 
 ```powershell
-dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.1.0
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.2.0
 ```
 
 ## Using the graph
@@ -57,6 +59,8 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.1.0
 | Action | Result |
 | --- | --- |
 | Select **Task DAG** | Opens the Session-scoped graph panel. |
+| Drag empty canvas | Pans the scrollable original-size canvas. |
+| Drag a node | Rearranges it while its edges stay in sync; the layout survives close and reopen for the current Session. |
 | Select a subagent node | Opens that Session when it is available in the Session list. |
 | Toggle fit mode | Switches between a whole-graph overview and the original scrollable canvas. |
 | Refresh | Refreshes observed subagent catalogs; workflow nodes remain projection-driven. |
@@ -75,7 +79,7 @@ The browser plugin combines three durable Client-facing sources:
 - `SessionListState.subagentsByParent` provides labels, modes, activity, and catalog health.
 - `workflow-run` Conversation Nodes provide workflow phases, members, and outcomes.
 
-The owned graph model then normalizes lineage, inserts workflow grouping nodes, derives navigation capability, lays out stable vertical layers, and renders into `conversation.session.header.actions`.
+The package-owned graph-model Module normalizes lineage, inserts workflow grouping nodes, derives navigation capability, and lays out stable vertical layers. The UI Module renders that projection into `conversation.session.header.actions`.
 
 There is no process-local workflow cache, model prompt contribution, model tool, Host RPC endpoint, or polling loop.
 
@@ -96,10 +100,10 @@ npm run check
 
 The check pipeline:
 
-1. validates source syntax;
-2. rebuilds the precompiled browser module;
-3. validates the generated bundle syntax;
-4. runs jsdom interaction smoke tests for workflow grouping, fit mode, close controls, and node navigation;
+1. validates source syntax and the pure graph-model Module;
+2. runs graph-model unit tests for lineage, workflow grouping, deterministic layout, and deep chains;
+3. rebuilds and validates the precompiled browser module;
+4. runs jsdom interaction smoke tests for controls, canvas panning, persistent node dragging, and node navigation;
 5. verifies in CI that committed `lib/client.js` is reproducible from source.
 
 ## Remove

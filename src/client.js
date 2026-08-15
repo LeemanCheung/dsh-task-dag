@@ -12,12 +12,7 @@ const {
 
 const PACKAGE_ID = 'dsh-task-dag';
 const NS = 'taskDag';
-const NODE_WIDTH = 212;
-const NODE_HEIGHT = 70;
-const X_GAP = 24;
-const Y_GAP = 58;
-const CANVAS_PAD = 32;
-const MIN_CANVAS_WIDTH = 720;
+const { NODE_WIDTH, NODE_HEIGHT, buildGraph, graphLayout, normalizeStatus } = GRAPH_MODEL;
 
 const zh = {
   'title': '任务 DAG',
@@ -25,6 +20,7 @@ const zh = {
   'panel.summary': '{nodes} 个节点 · {edges} 条依赖',
   'panel.live': '基于会话投影实时更新',
   'graph.aria': '当前会话的任务有向无环图',
+  'canvas.aria': '可拖拽平移的任务 DAG 画布',
   'button.close': '关闭任务 DAG',
   'button.fit': '适应视口',
   'button.original': '原始尺寸',
@@ -39,6 +35,7 @@ const zh = {
   'node.phases': '{count} 个阶段',
   'node.phase': '阶段 · {name}',
   'node.open': '打开子代理会话 {name}',
+  'node.drag': '拖动节点 {name}',
   'status.running': '运行中',
   'status.completed': '已完成',
   'status.failed': '失败',
@@ -49,7 +46,7 @@ const zh = {
   'legend.completed': '已完成',
   'legend.failed': '失败',
   'legend.interrupted': '中断 / 取消',
-  'hint': '点击子代理节点可打开会话',
+  'hint': '拖动空白画布可平移视图；拖动节点可调整布局；点击子代理节点可打开会话',
 };
 
 const en = {
@@ -58,6 +55,7 @@ const en = {
   'panel.summary': '{nodes} nodes · {edges} dependencies',
   'panel.live': 'Updates from live Session projections',
   'graph.aria': 'Directed acyclic task graph for the current Session',
+  'canvas.aria': 'Pannable task DAG canvas',
   'button.close': 'Close Task DAG',
   'button.fit': 'Fit to viewport',
   'button.original': 'Original size',
@@ -72,6 +70,7 @@ const en = {
   'node.phases': '{count} phases',
   'node.phase': 'Phase · {name}',
   'node.open': 'Open subagent Session {name}',
+  'node.drag': 'Drag node {name}',
   'status.running': 'Running',
   'status.completed': 'Completed',
   'status.failed': 'Failed',
@@ -82,7 +81,7 @@ const en = {
   'legend.completed': 'Completed',
   'legend.failed': 'Failed',
   'legend.interrupted': 'Interrupted / cancelled',
-  'hint': 'Select a subagent node to open its Session',
+  'hint': 'Drag the empty canvas to pan; drag nodes to arrange the graph; select a subagent node to open its Session',
 };
 
 function sameArray(left, right) {
@@ -94,234 +93,8 @@ function sameArray(left, right) {
   return true;
 }
 
-function normalizeStatus(status) {
-  switch (status) {
-    case 'running':
-    case 'completed':
-    case 'failed':
-    case 'cancelled':
-    case 'interrupted':
-      return status;
-    default:
-      return 'idle';
-  }
-}
-
-function summaryStatus(summary, detail) {
-  if (detail && detail.activity === 'running') return 'running';
-  if (summary.running) return 'running';
-  return summary.completed ? 'completed' : 'idle';
-}
-
-function typeLabel(type, t) {
-  switch (type) {
-    case 'one-shot': return t('node.oneShot');
-    case 'continuable': return t('node.continuable');
-    case 'workflow': return t('node.workflow');
-    case 'root': return t('node.current');
-    default: return t('node.subagent');
-  }
-}
-
 function statusLabel(status, t) {
   return t(`status.${normalizeStatus(status)}`);
-}
-
-function lineageDepth(summary, rootId, summaries) {
-  let current = summary;
-  let depth = 0;
-  const seen = new Set();
-  while (current && current.origin === 'subagent' && current.parentId !== undefined) {
-    if (seen.has(current.id)) return null;
-    seen.add(current.id);
-    depth += 1;
-    if (current.parentId === rootId) return depth;
-    current = summaries[current.parentId];
-  }
-  return null;
-}
-
-function catalogIndex(catalogs) {
-  const indexed = new Map();
-  for (const [parentId, catalog] of Object.entries(catalogs)) {
-    for (const entry of catalog.entries || []) {
-      if (entry.kind !== 'child') continue;
-      indexed.set(entry.id, {
-        parentId,
-        activity: entry.activity,
-        mode: entry.mode,
-        label: entry.label,
-      });
-    }
-  }
-  return indexed;
-}
-
-function phaseMeta(base, phase, t) {
-  if (phase === null || phase === undefined || phase === '') return base;
-  return t('node.phase', { name: phase });
-}
-
-function buildGraph(rootId, rootRunning, summaries, catalogs, ordinaryIds, workflowNodes, t) {
-  const details = catalogIndex(catalogs);
-  const ordinary = new Set(ordinaryIds);
-  const nodesById = new Map();
-  const rootSummary = summaries[rootId];
-  nodesById.set(rootId, {
-    id: rootId,
-    label: rootSummary?.displayTitle || t('node.fallback'),
-    meta: t('node.current'),
-    type: 'root',
-    status: rootRunning ? 'running' : rootSummary?.completed ? 'completed' : 'idle',
-    parentId: null,
-    navigable: false,
-    order: -1,
-  });
-
-  const parentIds = new Set([rootId]);
-  for (const summary of Object.values(summaries)) {
-    const depth = lineageDepth(summary, rootId, summaries);
-    if (depth === null) continue;
-    if (summary.parentId !== undefined) parentIds.add(summary.parentId);
-    const detail = details.get(summary.id);
-    const type = detail?.mode || 'subagent';
-    nodesById.set(summary.id, {
-      id: summary.id,
-      label: detail?.label || summary.displayTitle || t('node.subagent'),
-      meta: typeLabel(type, t),
-      type,
-      status: summaryStatus(summary, detail),
-      parentId: summary.parentId || rootId,
-      navigable: ordinary.has(summary.id),
-      order: summary.updatedAt || 0,
-    });
-  }
-
-  const workflows = [...workflowNodes].sort((left, right) => left.anchorSeq - right.anchorSeq);
-  for (const viewNode of workflows) {
-    const data = viewNode.data;
-    const phases = data.phases || [];
-    const workflowId = `workflow:${viewNode.id}`;
-    let memberCount = 0;
-    for (const phase of phases) memberCount += phase.members.length;
-    const metaParts = [t('node.tasks', { count: memberCount })];
-    if (phases.length > 1) metaParts.push(t('node.phases', { count: phases.length }));
-    nodesById.set(workflowId, {
-      id: workflowId,
-      label: data.name || t('node.workflow'),
-      meta: metaParts.join(' · '),
-      type: 'workflow',
-      status: normalizeStatus(data.status),
-      parentId: rootId,
-      navigable: false,
-      order: viewNode.anchorSeq,
-    });
-
-    for (const phase of phases) {
-      for (const member of phase.members) {
-        let child = nodesById.get(member.childId);
-        if (child === undefined) {
-          child = {
-            id: member.childId,
-            label: member.label || t('node.subagent'),
-            meta: phaseMeta(t('node.subagent'), phase.phase, t),
-            type: 'subagent',
-            status: normalizeStatus(member.status),
-            parentId: workflowId,
-            navigable: false,
-            order: member.seq,
-          };
-          nodesById.set(member.childId, child);
-        } else {
-          child.parentId = workflowId;
-          child.status = normalizeStatus(member.status);
-          child.order = member.seq;
-          if (member.label) child.label = member.label;
-          child.meta = phaseMeta(child.meta, phase.phase, t);
-        }
-      }
-    }
-  }
-
-  const nodes = [...nodesById.values()];
-  const edges = [];
-  for (const node of nodes) {
-    if (node.parentId === null || !nodesById.has(node.parentId)) continue;
-    const from = nodesById.get(node.parentId);
-    edges.push({
-      id: `${node.parentId}>${node.id}`,
-      from: node.parentId,
-      to: node.id,
-      workflow: from.type === 'workflow' || node.type === 'workflow',
-    });
-  }
-  return {
-    rootId,
-    nodes,
-    edges,
-    parentIds: [...parentIds],
-    activeCount: nodes.filter(node => node.id !== rootId && node.status === 'running').length,
-  };
-}
-
-function graphLayout(graph) {
-  const nodesById = new Map(graph.nodes.map(node => [node.id, node]));
-  const depths = new Map([[graph.rootId, 0]]);
-  function depthOf(id, visiting = new Set()) {
-    if (depths.has(id)) return depths.get(id);
-    if (visiting.has(id)) return 1;
-    visiting.add(id);
-    const node = nodesById.get(id);
-    const parentDepth = node?.parentId && nodesById.has(node.parentId)
-      ? depthOf(node.parentId, visiting)
-      : 0;
-    visiting.delete(id);
-    const depth = parentDepth + 1;
-    depths.set(id, depth);
-    return depth;
-  }
-  for (const node of graph.nodes) depthOf(node.id);
-
-  const maxDepth = Math.max(0, ...depths.values());
-  const layers = Array.from({ length: maxDepth + 1 }, () => []);
-  for (const node of graph.nodes) layers[depths.get(node.id) || 0].push(node);
-  for (let depth = 0; depth < layers.length; depth += 1) {
-    const parentOrder = depth === 0
-      ? new Map()
-      : new Map(layers[depth - 1].map((node, index) => [node.id, index]));
-    layers[depth].sort((left, right) => {
-      const parentDelta = (parentOrder.get(left.parentId) ?? 0) - (parentOrder.get(right.parentId) ?? 0);
-      if (parentDelta !== 0) return parentDelta;
-      const orderDelta = left.order - right.order;
-      if (orderDelta !== 0) return orderDelta;
-      return left.label.localeCompare(right.label);
-    });
-  }
-
-  const widest = Math.max(1, ...layers.map(layer => layer.length));
-  const width = Math.max(
-    MIN_CANVAS_WIDTH,
-    CANVAS_PAD * 2 + widest * NODE_WIDTH + Math.max(0, widest - 1) * X_GAP,
-  );
-  const height = CANVAS_PAD * 2 + layers.length * NODE_HEIGHT + Math.max(0, layers.length - 1) * Y_GAP;
-  const positions = new Map();
-  for (let depth = 0; depth < layers.length; depth += 1) {
-    const layer = layers[depth];
-    const layerWidth = layer.length * NODE_WIDTH + Math.max(0, layer.length - 1) * X_GAP;
-    const startX = (width - layerWidth) / 2;
-    for (let index = 0; index < layer.length; index += 1) {
-      positions.set(layer[index].id, {
-        x: startX + index * (NODE_WIDTH + X_GAP),
-        y: CANVAS_PAD + depth * (NODE_HEIGHT + Y_GAP),
-      });
-    }
-  }
-  return {
-    width,
-    height,
-    positions,
-    signature: graph.nodes.map(node => `${node.id}:${node.parentId}`).join('|'),
-  };
 }
 
 function truncate(value, length) {
@@ -372,15 +145,55 @@ function NodeGlyph({ type, x, y }) {
     h('g', { className: 'dsh-task-dag-node-icon', transform: 'translate(5 5)' }, glyph));
 }
 
-function GraphNode({ node, position, onOpen, t }) {
+function GraphNode({ node, position, onDragEnd, onDragMove, onDragStart, onOpen, t }) {
   const clickable = node.navigable;
-  const activate = () => { if (clickable) onOpen(node.id); };
+  const dragRef = useRef(null);
+  const activate = (event) => {
+    if (dragRef.current?.moved) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragRef.current = null;
+      return;
+    }
+    if (clickable) onOpen(node.id);
+  };
   const onKeyDown = (event) => {
     if (!clickable || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
-    activate();
+    onOpen(node.id);
   };
-  const ariaLabel = clickable ? t('node.open', { name: node.label }) : undefined;
+  const onPointerDown = (event) => {
+    if (event.isPrimary === false || (event.button !== undefined && event.button !== 0)) return;
+    event.stopPropagation();
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
+    onDragStart(node.id, event);
+    if (typeof event.currentTarget.setPointerCapture === 'function') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+  };
+  const onPointerMove = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 3) {
+      drag.moved = true;
+    }
+    if (!drag.moved) return;
+    event.preventDefault();
+    onDragMove(event);
+  };
+  const onPointerEnd = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (typeof event.currentTarget.hasPointerCapture === 'function'
+      && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    onDragEnd(event);
+    if (!drag.moved || event.type === 'pointercancel') dragRef.current = null;
+  };
+  const ariaLabel = clickable
+    ? `${t('node.open', { name: node.label })}. ${t('node.drag', { name: node.label })}`
+    : undefined;
   return h('g', {
     className: 'dsh-task-dag-node',
     transform: `translate(${position.x} ${position.y})`,
@@ -392,8 +205,12 @@ function GraphNode({ node, position, onOpen, t }) {
     'aria-label': ariaLabel,
     onClick: activate,
     onKeyDown,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: onPointerEnd,
+    onPointerCancel: onPointerEnd,
   },
-  h('title', null, `${node.label}\n${node.meta}\n${statusLabel(node.status, t)}`),
+  h('title', null, `${node.label}\n${node.meta}\n${statusLabel(node.status, t)}\n${t('node.drag', { name: node.label })}`),
   h('rect', { className: 'dsh-task-dag-node-card', width: NODE_WIDTH, height: NODE_HEIGHT, rx: 10 }),
   h(NodeGlyph, { type: node.type, x: 0, y: 0 }),
   h('text', { className: 'dsh-task-dag-node-label', x: 52, y: 28 }, truncate(node.label, 18)),
@@ -401,7 +218,7 @@ function GraphNode({ node, position, onOpen, t }) {
   h('circle', { className: 'dsh-task-dag-status-dot', cx: NODE_WIDTH - 16, cy: 18, r: 3.25 }));
 }
 
-function TaskGraph({ fit, graph, layout, onOpen, t }) {
+function TaskGraph({ fit, graph, layout, onDragEnd, onDragMove, onDragStart, onOpen, positions, t }) {
   return h('svg', {
     className: 'dsh-task-dag-svg',
     'data-fit': fit ? 'true' : undefined,
@@ -428,8 +245,8 @@ function TaskGraph({ fit, graph, layout, onOpen, t }) {
       markerUnits: 'userSpaceOnUse',
     }, h('path', { className: 'dsh-task-dag-arrow', d: 'M0 0 6 3.5 0 7Z' }))),
   ...graph.edges.map((edge) => {
-    const from = layout.positions.get(edge.from);
-    const to = layout.positions.get(edge.to);
+    const from = positions.get(edge.from);
+    const to = positions.get(edge.to);
     if (!from || !to) return null;
     const x1 = from.x + NODE_WIDTH / 2;
     const y1 = from.y + NODE_HEIGHT;
@@ -447,7 +264,10 @@ function TaskGraph({ fit, graph, layout, onOpen, t }) {
   ...graph.nodes.map(node => h(GraphNode, {
     key: node.id,
     node,
-    position: layout.positions.get(node.id),
+    position: positions.get(node.id),
+    onDragEnd,
+    onDragMove,
+    onDragStart,
     onOpen,
     t,
   })));
@@ -463,16 +283,40 @@ function Legend({ t }) {
     h('span', null, t(`legend.${status}`)))));
 }
 
-function TaskDagDialog({ close, fit, graph, layout, onOpen, refresh, setFit, t }) {
+function TaskDagDialog({
+  close, fit, graph, layout, nodePositions, onOpen, refresh, setFit, setNodePositions, t,
+}) {
   const panelRef = useRef(null);
   const viewportRef = useRef(null);
   const dragRef = useRef(null);
+  const nodeDragRef = useRef(null);
+  const canvasDragRef = useRef(null);
   const [position, setPosition] = useState(null);
+  const [canvasDragging, setCanvasDragging] = useState(false);
+  const positions = useMemo(() => {
+    const next = new Map(layout.positions);
+    for (const node of graph.nodes) {
+      if (nodePositions[node.id] !== undefined) next.set(node.id, nodePositions[node.id]);
+    }
+    return next;
+  }, [graph.nodes, layout.positions, nodePositions]);
 
   useEffect(() => {
     panelRef.current?.focus({ preventScroll: true });
   }, []);
 
+  useEffect(() => {
+    const nodeIds = new Set(graph.nodes.map(node => node.id));
+    setNodePositions(current => {
+      let changed = false;
+      const next = {};
+      for (const [id, nodePosition] of Object.entries(current)) {
+        if (nodeIds.has(id)) next[id] = nodePosition;
+        else changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [layout.signature]);
   useLayoutEffect(() => {
     if (fit) return;
     const viewport = viewportRef.current;
@@ -525,6 +369,79 @@ function TaskDagDialog({ close, fit, graph, layout, onOpen, refresh, setFit, t }
     setPosition({ x: drag.x, y: drag.y });
   };
 
+  const graphPoint = (svg, event) => {
+    const rect = svg.getBoundingClientRect();
+    const scale = Math.min(rect.width / layout.width, rect.height / layout.height);
+    const renderedWidth = layout.width * scale;
+    return {
+      x: (event.clientX - rect.left - (rect.width - renderedWidth) / 2) / scale,
+      y: (event.clientY - rect.top) / scale,
+    };
+  };
+  const beginNodeDrag = (id, event) => {
+    const svg = event.currentTarget.ownerSVGElement;
+    const origin = positions.get(id);
+    if (!svg || !origin) return;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    nodeDragRef.current = {
+      pointerId: event.pointerId,
+      id,
+      origin,
+      start: graphPoint(svg, event),
+      svg,
+    };
+  };
+  const moveNodeDrag = (event) => {
+    const drag = nodeDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const point = graphPoint(drag.svg, event);
+    const x = Math.round(Math.min(layout.width - NODE_WIDTH, Math.max(0, drag.origin.x + point.x - drag.start.x)));
+    const y = Math.round(Math.min(layout.height - NODE_HEIGHT, Math.max(0, drag.origin.y + point.y - drag.start.y)));
+    setNodePositions(current => {
+      const previous = current[drag.id];
+      if (previous?.x === x && previous?.y === y) return current;
+      return { ...current, [drag.id]: { x, y } };
+    });
+  };
+  const endNodeDrag = (event) => {
+    const drag = nodeDragRef.current;
+    if (drag && drag.pointerId === event.pointerId) nodeDragRef.current = null;
+  };
+  const beginCanvasDrag = (event) => {
+    if (fit || event.isPrimary === false || (event.button !== undefined && event.button !== 0)) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    canvasDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: viewport.scrollLeft,
+      scrollTop: viewport.scrollTop,
+    };
+    setCanvasDragging(true);
+    if (typeof event.currentTarget.setPointerCapture === 'function') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+  };
+  const moveCanvasDrag = (event) => {
+    const drag = canvasDragRef.current;
+    const viewport = viewportRef.current;
+    if (!drag || !viewport || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    viewport.scrollLeft = drag.scrollLeft - (event.clientX - drag.startX);
+    viewport.scrollTop = drag.scrollTop - (event.clientY - drag.startY);
+  };
+  const endCanvasDrag = (event) => {
+    const drag = canvasDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (typeof event.currentTarget.hasPointerCapture === 'function'
+      && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    canvasDragRef.current = null;
+    setCanvasDragging(false);
+  };
   const panelStyle = position === null
     ? { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }
     : { left: position.x, top: position.y, transform: 'none' };
@@ -581,7 +498,25 @@ function TaskDagDialog({ close, fit, graph, layout, onOpen, refresh, setFit, t }
     ref: viewportRef,
     className: 'dsh-task-dag-viewport',
     'data-fit': fit ? 'true' : undefined,
-  }, h(TaskGraph, { fit, graph, layout, onOpen, t })),
+    'data-panning': canvasDragging ? 'true' : undefined,
+    role: 'region',
+    'aria-label': t('canvas.aria'),
+    tabIndex: 0,
+    onPointerDown: beginCanvasDrag,
+    onPointerMove: moveCanvasDrag,
+    onPointerUp: endCanvasDrag,
+    onPointerCancel: endCanvasDrag,
+  }, h(TaskGraph, {
+    fit,
+    graph,
+    layout,
+    onDragEnd: endNodeDrag,
+    onDragMove: moveNodeDrag,
+    onDragStart: beginNodeDrag,
+    onOpen,
+    positions,
+    t,
+  })),
   h('footer', { className: 'dsh-task-dag-footer' },
     h(Legend, { t }),
     h('span', { className: 'dsh-task-dag-hint' }, t('hint')))));
@@ -600,6 +535,7 @@ function TaskDagAction({
   );
   const [open, setOpen] = useState(false);
   const [fit, setFit] = useState(true);
+  const [nodePositions, setNodePositions] = useState({});
   const triggerRef = useRef(null);
   const catalogActionsRef = useRef({ refreshCatalogs, setCatalogsOpen });
   catalogActionsRef.current = { refreshCatalogs, setCatalogsOpen };
@@ -610,6 +546,7 @@ function TaskDagAction({
   const layout = useMemo(() => graphLayout(graph), [graph]);
   const parentKey = graph.parentIds.join('\u001f');
 
+  useEffect(() => { setNodePositions({}); }, [sessionId]);
   useEffect(() => {
     if (!open) return undefined;
     const parentIds = graph.parentIds;
@@ -658,9 +595,11 @@ function TaskDagAction({
       fit,
       graph,
       layout,
+      nodePositions,
       onOpen: openNode,
       refresh: () => catalogActionsRef.current.refreshCatalogs(graph.parentIds),
       setFit,
+      setNodePositions,
       t,
     }), document.body) : null);
 }

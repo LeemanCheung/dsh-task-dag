@@ -59,14 +59,14 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.2.0
 
 | Action | Result |
 | --- | --- |
-| Select **Task DAG** | Opens the Session-scoped graph panel. |
+| Select **Task DAG** | Opens the Session-scoped graph panel, enables the related parent catalogs, and refreshes them. |
 | Drag empty canvas | Pans the scrollable original-size canvas. |
 | Drag a node | Rearranges it while its edges stay in sync; the layout survives close and reopen for the current Session. |
-| Select a subagent node | Opens that Session when it is available in the Session list. |
+| Select a subagent node, or press `Enter` / `Space` on it | Opens that Session when it is available in the Session list. |
 | Toggle fit mode | Switches between a whole-graph overview and the original scrollable canvas. |
 | Refresh | Refreshes observed subagent catalogs; workflow nodes remain projection-driven. |
 | Drag the title bar | Repositions the panel without capturing toolbar controls. |
-| Press `Escape` or select close | Closes the panel and restores focus to the trigger. |
+| Press `Escape` or select close | Closes the panel and restores focus to the trigger. The dialog has no focus trap and does not offer keyboard dragging for the panel, canvas, or nodes. |
 
 Status colors are deliberately limited to business blue, success green, error red, and warning amber. All other hierarchy is expressed through spacing, typography, borders, and line styles.
 
@@ -112,6 +112,8 @@ The check pipeline:
 5. verifies in CI that committed `lib/client.js` is reproducible from source.
 
 These are pure-model and jsdom smoke checks, not a full DSH Web end-to-end suite. Theme fidelity, responsive layout, complete focus behavior, and unload behavior in a real profile still need manual or browser-E2E verification.
+
+`scripts/build.mjs` embeds `src/graph-model.js`, `src/client.js`, and `src/style.css` into the committed `lib/client.js`. Do not edit that generated file directly: change `src/`, then run `npm run build` or `npm run check` before committing.
 
 ## Troubleshooting
 

@@ -44,6 +44,21 @@
 
 ![dsh-task-dag 在 DSH Web 中运行](docs/screenshot.png)
 
+## 真实会话验证
+
+除了模型与 jsdom 检查，v1.3.0 界面还在真实 DSH Web Session 中完成了以下验证：
+
+| 场景 | 真实运行活动 | 图形验证结果 |
+| --- | --- | --- |
+| **Agent Teams** | Team Lead 创建 2 个有效 teammate、4 个覆盖已完成、运行中和阻塞状态的持久任务、1 条真实 `blockedBy` 依赖，以及 3 条定向通信通道。 | Agent Teams 视图正确显示成员、任务分配与依赖边；待投递和已投递通道保持不同状态；点击通道可打开包含 quiet/wakeup 信息的消息时间线。 |
+| **Workflow** | 一个顶层 Session 调用 `workflow` 运行 `workflow-root-visual-validation`：`parallel-checks` 启动 `alpha-worker` 与 `beta-worker`，随后 `summary` 启动 `summary-worker`。 | Workflow 视图显示 1 个 run、2 个阶段分组与 3 个成员 Session，共 7 个节点、6 条结构边；无需刷新即可从 `summary` 运行中更新为全部完成。 |
+
+Workflow 验证分别返回 `alpha-ok`、`beta-ok` 和 `summary-ok`；两项验证期间浏览器控制台均为 0 error。Session 标题栏徽标只统计关联拓扑节点，不包含当前根 Session；弹窗总数则包含根节点，因此徽标 6 对应打开后的 7 个 Workflow 节点。
+
+如需复现 Workflow 验证，请新建一个顶层 Session，在该 Session 中调用 `workflow` 工具，再在同一 Session 打开“任务 DAG → Workflow”。如果 Workflow 在子代理中发起，需要先打开该子 Session；父图会正确地把它显示为委派工作，而不会接管其内部 Workflow run。
+
+`dsh-task-dag` 只可视化 Agent Teams 记录，不负责安装或创建 Agent Teams 运行时。本版本发布时 Agent Teams 仍是上游实验能力，并非所有标准 DSH Web profile 都会挂载；Host composition 必须先产生受支持的 Team 事件，Agent Teams 视图才会显示数据。
+
 ## 安装
 
 ```powershell
@@ -124,6 +139,8 @@ npm run check
 | --- | --- |
 | 找不到“任务 DAG”入口 | 确认使用 Web profile，重启 `dsh web` 并刷新页面。 |
 | Teammate Session 的 Team 视图为空 | 打开 Team Lead / 父 Session；共享任务和消息日志存放在那里。 |
+| Team Lead Session 的 Team 视图仍为空 | 确认 Host profile 已挂载 Agent Teams provider 并产生受支持的 Team 事件；本可视化插件不会创建 Team。 |
+| Workflow 视图为空 | 打开实际调用 `workflow` 的那个 Session；父 Session 不会投影子 Session 内部的 Workflow run。 |
 | 节点无法打开 | 仅仍显示在 DSH Session 列表中的 Session 可导航。 |
 | 子代理状态或标签疑似过期 | 点击“刷新”以刷新观察到的子代理目录。 |
 

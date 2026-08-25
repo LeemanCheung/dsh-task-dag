@@ -44,6 +44,21 @@ Captured from a running DSH Web Session with labels anonymized. The panel, contr
 
 ![dsh-task-dag running in DSH Web](docs/screenshot.png)
 
+## Verified live scenarios
+
+The v1.3.0 UI has been exercised in real DSH Web Sessions in addition to the model and jsdom checks:
+
+| Scenario | Real runtime activity | Observed graph behavior |
+| --- | --- | --- |
+| **Agent Teams** | A Team Lead created two active teammates, four durable tasks spanning completed, active, and blocked states, a real `blockedBy` dependency, and three directed communication channels. | The Agent Teams view rendered member, assignment, and dependency edges; queued and delivered channel states remained distinct; selecting a channel opened its quiet/wakeup message timeline. |
+| **Workflow** | A top-level Session invoked `workflow` to run `workflow-root-visual-validation`: `parallel-checks` started `alpha-worker` and `beta-worker`, then `summary` started `summary-worker`. | The Workflow view rendered one run, two phase groups, and three member Sessions as 7 total nodes and 6 structural edges. It updated from `summary` running to the complete outcome without a refresh. |
+
+The Workflow fixture returned `alpha-ok`, `beta-ok`, and `summary-ok`; the browser console reported zero errors during both checks. The Session-header badge counts related topology nodes and excludes the current Session, while the dialog total includes that root. A badge of 6 therefore corresponds to 7 nodes in the open Workflow graph.
+
+To reproduce the Workflow check, create a new top-level Session, invoke the `workflow` tool from that Session, then open **Task DAG → Workflow** in the same Session. If Workflow is invoked inside a subagent, open that child Session first; the parent graph correctly shows the child as delegated work rather than adopting its internal Workflow run.
+
+`dsh-task-dag` visualizes Agent Teams records but does not install or create the Agent Teams runtime. At the time of this release, Agent Teams is an upstream experimental capability and is not mounted by every stock DSH Web profile. The Host composition must emit the supported Team events before the Agent Teams view can contain data.
+
 ## Install
 
 ```powershell
@@ -124,6 +139,8 @@ These are pure-model and jsdom checks rather than a complete DSH Web E2E environ
 | --- | --- |
 | **Task DAG** is missing | Confirm this is the Web profile, restart `dsh web`, and refresh the page. |
 | Team view is empty in a teammate Session | Open the Team Lead/parent Session; the shared task and message journal lives there. |
+| Team view is empty in the Team Lead Session | Confirm the Host profile mounts an Agent Teams provider and has emitted supported Team events; this visualization plugin does not create Teams. |
+| Workflow view is empty | Open the exact Session that invoked `workflow`. A parent Session does not project a child Session's internal Workflow run. |
 | A node cannot open | Only Sessions that remain visible in DSH's Session list are navigable. |
 | Child status or labels look stale | Select **Refresh** to refresh observed subagent catalogs. |
 

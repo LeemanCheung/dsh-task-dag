@@ -1,8 +1,8 @@
 <h1 align="center">dsh-task-dag</h1>
 
 <p align="center">
-  A live task topology for DeepSeek Harness Web.<br>
-  See Sessions, delegated subagents, and durable workflows as one navigable DAG.
+  A live orchestration topology for DeepSeek Harness Web.<br>
+  Inspect delegated Sessions, Agent Teams task dependencies and communication, and durable Workflow runs.
 </p>
 
 <p align="center">
@@ -21,23 +21,26 @@
 
 ## At a glance
 
-`dsh-task-dag` turns DSH's existing Client projections into a top-to-bottom dependency graph. It keeps no parallel workflow database and sends no polling requests: when Session state changes, the graph changes with it.
+`dsh-task-dag` turns DSH's existing Client projections into three focused graph views. It keeps no parallel orchestration database and sends no polling requests: Session, Team, and Workflow state is rebuilt from the projections DSH already owns.
 
-| Capability | Behavior |
+| View | What it shows |
 | --- | --- |
-| Live topology | Reacts to Session and subagent catalog snapshots without Host polling. |
-| Durable workflows | Reconstructs workflow phases and members from `workflow-run` Conversation Nodes after restart. |
-| Clear ownership | Groups workflow members under workflow nodes instead of drawing duplicate root-to-child edges. |
-| Direct navigation | Opens healthy, list-visible subagent Sessions from their graph nodes. |
-| Canvas control | Fits the whole graph or pans the original-size canvas; nodes can be dragged and keep their rearranged positions while the current Session panel is reopened. |
-| Bounded layout persistence | Manual node positions live only in the current page's current-Session React state; switching Sessions, refreshing the page, or restarting DSH restores deterministic automatic layout. Workflow topology itself is rebuilt from durable Conversation Nodes. |
-| Robust projection | Rejects broken or cyclic lineage while retaining deterministic layers for valid deep dependency chains. |
-| Native presentation | Uses DSH theme semantics, restrained status colors, and custom SVG icons in light and dark modes. |
-| Lifecycle safe | Registers UI and styles through Cordis lifecycle ownership and removes them on unload. |
+| **Overview** | Current Session, ordinary delegated subagents, Team members and tasks, Agent communication, and Workflow runs. |
+| **Agent Teams** | Team Lead and teammates, task assignment, the real shared-task `blockedBy` DAG, and an optional communication overlay. |
+| **Workflow** | Durable Workflow run, phase grouping, and started member Sessions. Phase edges are presentation grouping, not script dependency edges. |
+
+Additional behavior:
+
+- **Agent communication:** directed channels aggregate message count and queued delivery state. Select a channel to inspect the latest 100 message records with quiet/wakeup and delivery metadata; only text blocks are previewed, while other block types are counted.
+- **Direct navigation:** selectable teammate, subagent, and Workflow member nodes open the real Session when it remains visible in the Session list.
+- **Canvas control:** fit the whole topology, pan the original-size canvas, or drag nodes while connected edges update.
+- **Per-view layout:** manual positions survive view switches and reopening the panel for the current Session. Switching Sessions, refreshing the page, or restarting DSH restores deterministic automatic layout.
+- **Native presentation:** the panel uses DSH semantic theme tokens, accessible status labels, edge line styles, responsive communication details, and reduced-motion behavior.
+- **Lifecycle safety:** Team projection, locale, styles, and Slot UI are all owned by the Cordis plugin lifecycle.
 
 ## Live screenshot
 
-Captured from a running DSH Web Session with task labels anonymized. The panel, layout, edges, controls, and status presentation are the actual plugin UI.
+Captured from a running DSH Web Session with labels anonymized. The panel, controls, layout, and graph presentation are the actual linked plugin UI.
 
 ![dsh-task-dag running in DSH Web](docs/screenshot.png)
 
@@ -52,45 +55,51 @@ Restart the current DSH Web process once after the first installation, then refr
 For a version-pinned installation:
 
 ```powershell
-dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.2.0
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.3.0
 ```
 
 ## Using the graph
 
 | Action | Result |
 | --- | --- |
-| Select **Task DAG** | Opens the Session-scoped graph panel, enables the related parent catalogs, and refreshes them. |
-| Drag empty canvas | Pans the scrollable original-size canvas. |
-| Drag a node | Rearranges it while its edges stay in sync; the layout survives close and reopen for the current Session. |
-| Select a subagent node, or press `Enter` / `Space` on it | Opens that Session when it is available in the Session list. |
-| Toggle fit mode | Switches between a whole-graph overview and the original scrollable canvas. |
-| Refresh | Refreshes observed subagent catalogs; workflow nodes remain projection-driven. |
-| Drag the title bar | Repositions the panel without capturing toolbar controls. |
-| Press `Escape` or select close | Closes the panel and restores focus to the trigger. The dialog has no focus trap and does not offer keyboard dragging for the panel, canvas, or nodes. |
+| Select **Task DAG** | Opens the current Session's graph and refreshes observed subagent catalogs. |
+| Choose **Overview**, **Agent Teams**, or **Workflow** | Changes topology without losing the current page's manual layout for the other views. |
+| Toggle the message icon | Shows or hides Agent communication without changing task layout. |
+| Select a communication edge | Opens its directed message timeline. `Enter` and `Space` work from the focused edge. |
+| Select an Agent node | Opens its Session when it is available in the Session list. `Enter` and `Space` are supported. |
+| Drag empty canvas / drag a node | Pans the original-size canvas or rearranges one node while edges stay synchronized. |
+| Toggle fit mode | Switches between the whole-graph overview and the original scrollable canvas. |
+| Refresh | Refreshes subagent catalogs; Team and Workflow nodes remain projection-driven. |
+| Press `Escape` or select close | Closes the panel and restores focus to the trigger. |
 
-Status colors are deliberately limited to business blue, success green, error red, and warning amber. All other hierarchy is expressed through spacing, typography, borders, and line styles.
+The dialog does not trap focus and does not provide keyboard dragging for the panel, canvas, or nodes.
 
 ## Architecture
 
 ![dsh-task-dag projection architecture](docs/architecture.svg)
 
-The browser plugin combines three durable Client-facing sources:
+The browser plugin combines four Client-facing sources:
 
-- `SessionListState.byId` and `parentId` provide subagent lineage.
+- `SessionListState.byId` and `parentId` provide ordinary subagent lineage.
 - `SessionListState.subagentsByParent` provides labels, modes, activity, and catalog health.
-- `workflow-run` Conversation Nodes provide workflow phases, members, and outcomes.
+- Durable Agent Teams events provide members, shared tasks, queued messages, and delivery acknowledgements.
+- `workflow-run` Conversation Nodes provide Workflow runs, phase groups, members, and outcomes.
 
-The package-owned graph-model Module normalizes lineage, inserts workflow grouping nodes, derives navigation capability, and lays out stable vertical layers. The UI Module renders that projection into `conversation.session.header.actions`.
+A package-owned hidden Conversation Node Definition projects each supported Team v1 event into a small snapshot node. The graph model folds the latest task/member state, matches message delivery acknowledgements, aggregates directed communication channels, constructs explicit multi-parent edges, and applies a deterministic non-recursive topological layout. The UI renders the result in `conversation.session.header.actions`.
 
-There is no process-local workflow cache, model prompt contribution, model tool, Host RPC endpoint, or polling loop.
+There is no model prompt contribution, model tool, Host RPC endpoint, network request, polling loop, or second persistence layer.
 
 ### Projection boundaries
 
-Only descendants that can be traced to the current Session through `origin: "subagent"` lineage are shown. Orphans, missing-parent chains, and cycles are ignored. A catalog's `running` activity takes precedence over a completed Session summary; workflow members use their `workflow-run` status; unknown statuses render as historical/idle. If the same member appears in more than one workflow, the last parsed workflow membership owns its displayed grouping and status.
+- Agent Teams writes the task board and message journal into the **Team Lead Session**. A teammate Session cannot read that log through this client-only plugin, so its Team view links back to the visible parent Session instead of adding a cross-Session Host RPC.
+- `blockedBy` is the only edge presented as a real Team task dependency. Communication can be bidirectional and cyclic, so it is an overlay and never participates in DAG layering.
+- Persisted Workflow phases are progress groups. They do not reveal the complete internal `parallel()` or `pipeline()` control flow and are not labeled as execution dependencies.
+- Ordinary lineage must trace to the current Session through `origin: "subagent"`. Orphans, missing-parent chains, and lineage cycles are ignored. Malformed dependency cycles receive a deterministic fallback layer rather than blocking rendering.
+- The same Session may appear in Team and Workflow contexts because those nodes communicate different ownership semantics; all appearances navigate to the same Session ID.
 
 ## Security and permissions
 
-This is a browser-only, read-only visualization plugin. It does not read workspace files, execute commands, open network connections, register model tools, or persist Session content and credentials.
+This is a browser-only, read-only visualization plugin. It does not read workspace files, execute commands, open network connections, register model tools, or persist Session content and credentials. Message previews are derived from text blocks already present in the Team Lead Session and are shown only after a communication channel is selected.
 
 See [SECURITY.md](SECURITY.md) for the reporting policy and complete trust boundaries. Private vulnerability reporting is enabled for the repository.
 
@@ -103,25 +112,20 @@ npm install
 npm run check
 ```
 
-The check pipeline:
+The check pipeline validates all source syntax; tests Team event projection, task and communication folding, Workflow grouping, arbitrary DAG layout, deep lineages, and cyclic fallback; rebuilds the browser bundle; then runs jsdom interaction coverage for three views, the communication layer and bounded inspector, canvas controls, per-view node positions, focus, and Session navigation. CI also rejects drift in committed `lib/client.js`.
 
-1. validates source syntax and the pure graph-model Module;
-2. runs graph-model unit tests for lineage, workflow grouping, deterministic layout, and deep chains;
-3. rebuilds and validates the precompiled browser module;
-4. runs jsdom interaction smoke tests for controls, canvas panning, persistent node dragging, and node navigation;
-5. verifies in CI that committed `lib/client.js` is reproducible from source.
+These are pure-model and jsdom checks rather than a complete DSH Web E2E environment. Before release, the linked package is additionally verified against the running Web profile in a real browser.
 
-These are pure-model and jsdom smoke checks, not a full DSH Web end-to-end suite. Theme fidelity, responsive layout, complete focus behavior, and unload behavior in a real profile still need manual or browser-E2E verification.
-
-`scripts/build.mjs` embeds `src/graph-model.js`, `src/client.js`, and `src/style.css` into the committed `lib/client.js`. Do not edit that generated file directly: change `src/`, then run `npm run build` or `npm run check` before committing.
+`scripts/build.mjs` embeds `src/team-projection.js`, `src/graph-model.js`, `src/client.js`, and `src/style.css` into committed `lib/client.js`. Do not edit the generated file directly.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
 | **Task DAG** is missing | Confirm this is the Web profile, restart `dsh web`, and refresh the page. |
+| Team view is empty in a teammate Session | Open the Team Lead/parent Session; the shared task and message journal lives there. |
 | A node cannot open | Only Sessions that remain visible in DSH's Session list are navigable. |
-| Child status/labels look stale | Select **Refresh** to refresh observed subagent catalogs. |
+| Child status or labels look stale | Select **Refresh** to refresh observed subagent catalogs. |
 
 ## Remove
 

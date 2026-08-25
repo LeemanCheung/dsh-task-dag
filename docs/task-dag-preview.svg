@@ -1,86 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
-  <title id="title">dsh-task-dag live graph preview</title>
-  <desc id="desc">A DeepSeek Harness styled directed graph showing a current Session, workflow groups, and subagent tasks.</desc>
-  <style>
-    :root { --bg:#f7f8fa; --surface:#ffffff; --surface-2:#f1f3f5; --line:#c9cdd2; --border:#dfe2e5; --text:#17191c; --muted:#747a82; --caption:#9aa0a8; --brand:#17191c; --brand-text:#ffffff; --blue:#4b75ff; --blue-soft:#e9efff; --green:#20b26b; --amber:#e99a17; }
-    @media (prefers-color-scheme: dark) { :root { --bg:#17191c; --surface:#23262a; --surface-2:#2b2e33; --line:#50555d; --border:#383c42; --text:#f2f3f5; --muted:#a8adb5; --caption:#777d86; --brand:#f2f3f5; --brand-text:#17191c; --blue:#6f91ff; --blue-soft:#27345c; --green:#43c982; --amber:#f0aa36; } }
-    text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    .label { fill:var(--text); font-size:15px; font-weight:600; }
-    .meta { fill:var(--muted); font-size:12px; }
-    .root-label { fill:var(--brand-text); font-size:16px; font-weight:650; }
-    .root-meta { fill:var(--brand-text); opacity:.66; font-size:12px; }
-    .card { fill:var(--surface); stroke:var(--border); stroke-width:1.2; }
-    .edge { fill:none; stroke:var(--line); stroke-width:1.5; }
-    .workflow-edge { fill:none; stroke:var(--caption); stroke-width:1.5; stroke-dasharray:5 5; }
-    .pill-text { fill:var(--muted); font-size:10px; font-weight:700; letter-spacing:1.1px; }
-    [fill="var(--bg)"] { fill:#101216; } [stroke="var(--bg)"] { stroke:#101216; }
-    [fill="var(--surface)"] { fill:#1a1d22; } [stroke="var(--surface)"] { stroke:#1a1d22; }
-    [fill="var(--surface-2)"] { fill:#22262c; }
-    [fill="var(--border)"] { fill:#2b3038; } [stroke="var(--border)"] { stroke:#2b3038; }
-    [fill="var(--line)"] { fill:#46505c; } [stroke="var(--line)"] { stroke:#46505c; }
-    [fill="var(--text)"] { fill:#f4f6f8; } [stroke="var(--text)"] { stroke:#f4f6f8; }
-    [fill="var(--muted)"] { fill:#9da5af; } [stroke="var(--muted)"] { stroke:#9da5af; }
-    [fill="var(--caption)"] { fill:#69727e; } [stroke="var(--caption)"] { stroke:#69727e; }
-    [fill="var(--brand)"] { fill:#f4f6f8; } [stroke="var(--brand)"] { stroke:#f4f6f8; }
-    [fill="var(--brand-text)"] { fill:#111318; } [stroke="var(--brand-text)"] { stroke:#111318; }
-    [fill="var(--blue)"] { fill:#5f82ff; } [stroke="var(--blue)"] { stroke:#5f82ff; }
-    [fill="var(--blue-soft)"] { fill:#253156; }
-    [fill="var(--green)"] { fill:#38c780; } [stroke="var(--green)"] { stroke:#38c780; }
-    .label { fill:#f4f6f8; } .meta,.pill-text { fill:#9da5af; } .root-label,.root-meta { fill:#111318; }
-    .card { fill:#1a1d22; stroke:#2b3038; } .edge { stroke:#46505c; } .workflow-edge { stroke:#69727e; }
-  </style>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">dsh-task-dag Agent Teams preview</title>
+  <desc id="desc">The Agent Teams view with Team members, shared task dependencies, bidirectional communication, and a selected message timeline.</desc>
   <defs>
-    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--border)" opacity=".55"/></pattern>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#000000" flood-opacity=".08"/></filter>
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 7 4 0 8Z" fill="var(--line)"/></marker>
+    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#30353d"/></pattern>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 7 4 0 8Z" fill="#d7a33d"/></marker>
+    <marker id="comm-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 7 4 0 8Z" fill="#43c982"/></marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#000" flood-opacity=".2"/></filter>
+    <style>
+      text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .label { fill:#f4f6f8; font-size:13px; font-weight:650; }
+      .meta { fill:#9da5af; font-size:10px; }
+      .caption { fill:#9da5af; font-size:9px; }
+      .card { fill:#1a1d22; stroke:#343941; stroke-width:1.2; }
+      .structural { fill:none; stroke:#6686ff; stroke-width:1.5; }
+      .assignment { fill:none; stroke:#d7a33d; stroke-width:1.4; stroke-dasharray:4 4; }
+      .dependency { fill:none; stroke:#d7a33d; stroke-width:2; }
+      .communication { fill:none; stroke:#43c982; stroke-width:2.3; }
+    </style>
   </defs>
 
-  <rect x="1" y="1" width="1198" height="518" rx="20" fill="var(--bg)" stroke="var(--border)"/>
-  <rect x="1" y="78" width="1198" height="441" rx="0" fill="url(#dots)" opacity=".72"/>
-  <path d="M1 78H1199" stroke="var(--border)"/>
+  <rect x="1" y="1" width="1198" height="618" rx="18" fill="#17191d" stroke="#343941"/>
+  <rect x="1" y="1" width="1198" height="62" rx="18" fill="#202329"/>
+  <path d="M1 62H1199" stroke="#343941"/>
+  <g transform="translate(19 14)"><rect width="34" height="34" rx="9" fill="#f3f5f7"/><path d="M17 9v6M9 24v-5h16v5M17 15H9v4M17 15h8v4" fill="none" stroke="#15171b" stroke-width="1.7" stroke-linecap="round"/><rect x="14" y="5" width="6" height="5" rx="1.5" fill="none" stroke="#15171b" stroke-width="1.5"/></g>
+  <text x="66" y="28" fill="#f4f6f8" font-size="15" font-weight="700">Task DAG</text>
+  <text x="66" y="45" class="caption">6 nodes · 7 structural edges · 2 communication channels</text>
+  <g transform="translate(1081 20)" fill="none" stroke="#9da5af" stroke-width="1.5"><path d="M0 8a8 8 0 1 1 3 6M0 8V3m0 5h5"/><path d="M38 1v14M31 8h14"/><path d="M70 2l12 12m0-12L70 14"/></g>
 
-  <g transform="translate(28 20)">
-    <rect width="42" height="42" rx="12" fill="var(--brand)"/>
-    <path d="M21 13v6M12 27v-5h18v5M21 19H12v3M21 19h9v3" fill="none" stroke="var(--brand-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="17" y="8" width="8" height="6" rx="2" fill="none" stroke="var(--brand-text)" stroke-width="2"/>
-    <rect x="8" y="27" width="8" height="6" rx="2" fill="none" stroke="var(--brand-text)" stroke-width="2"/>
-    <rect x="26" y="27" width="8" height="6" rx="2" fill="none" stroke="var(--brand-text)" stroke-width="2"/>
-  </g>
-  <text x="84" y="38" fill="var(--text)" font-size="18" font-weight="700">dsh-task-dag</text>
-  <text x="84" y="57" fill="var(--muted)" font-size="12">Live subagent and workflow topology for DeepSeek Harness</text>
+  <rect x="1" y="63" width="1198" height="49" fill="#202329"/>
+  <path d="M1 112H1199" stroke="#343941"/>
+  <g transform="translate(19 72)"><rect width="92" height="30" rx="8" fill="#292d34"/><text x="13" y="19" fill="#a8adb5" font-size="11">Overview</text><rect x="65" y="7" width="18" height="16" rx="8" fill="#363b44"/><text x="74" y="18" text-anchor="middle" class="caption">9</text></g>
+  <g transform="translate(117 72)"><rect width="126" height="30" rx="8" fill="#f3f5f7"/><text x="13" y="19" fill="#16181c" font-size="11" font-weight="650">Agent Teams</text><rect x="99" y="7" width="18" height="16" rx="8" fill="#17191d"/><text x="108" y="18" text-anchor="middle" fill="#fff" font-size="9">5</text></g>
+  <g transform="translate(249 72)"><rect width="100" height="30" rx="8" fill="#292d34"/><text x="13" y="19" fill="#a8adb5" font-size="11">Workflow</text><rect x="73" y="7" width="18" height="16" rx="8" fill="#363b44"/><text x="82" y="18" text-anchor="middle" class="caption">4</text></g>
 
-  <g transform="translate(850 24)">
-    <rect width="86" height="26" rx="13" fill="var(--surface)" stroke="var(--border)"/><circle cx="16" cy="13" r="4" fill="var(--blue)"/><text x="29" y="17" class="pill-text">LIVE</text>
-  </g>
-  <g transform="translate(946 24)">
-    <rect width="118" height="26" rx="13" fill="var(--surface)" stroke="var(--border)"/><path d="M14 13l4 4 7-8" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="33" y="17" class="pill-text">DURABLE</text>
-  </g>
-  <g transform="translate(1074 24)">
-    <rect width="98" height="26" rx="13" fill="var(--surface)" stroke="var(--border)"/><path d="M15 9v8M20 9v8" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/><text x="31" y="17" class="pill-text">NO POLL</text>
-  </g>
+  <rect x="1" y="113" width="868" height="448" fill="#111318"/>
+  <rect x="1" y="113" width="868" height="448" fill="url(#dots)" opacity=".75"/>
+  <path d="M869 113V561" stroke="#343941"/>
 
-  <path class="edge" marker-end="url(#arrow)" d="M600 196C600 235 250 226 250 266"/>
-  <path class="workflow-edge" marker-end="url(#arrow)" d="M600 196C600 235 600 226 600 266"/>
-  <path class="edge" marker-end="url(#arrow)" d="M600 196C600 235 950 226 950 266"/>
-  <path class="edge" marker-end="url(#arrow)" d="M250 342C250 378 185 372 185 406"/>
-  <path class="edge" marker-end="url(#arrow)" d="M250 342C250 378 435 372 435 406"/>
-  <path class="workflow-edge" marker-end="url(#arrow)" d="M600 342C600 378 785 372 785 406"/>
-  <path class="edge" marker-end="url(#arrow)" d="M950 342C950 378 1035 372 1035 406"/>
+  <path class="structural" d="M434 210C434 248 202 242 202 278"/>
+  <path class="structural" d="M434 210C434 248 666 242 666 278"/>
+  <path class="assignment" marker-end="url(#arrow)" d="M202 352C202 376 172 374 172 400"/>
+  <path class="assignment" marker-end="url(#arrow)" d="M666 352C666 376 696 374 696 400"/>
+  <path class="dependency" marker-end="url(#arrow)" d="M276 438H352"/>
+  <path class="dependency" marker-end="url(#arrow)" d="M516 438H592"/>
+  <path class="communication" marker-end="url(#comm-arrow)" d="M314 307Q434 236 554 307"/>
+  <path class="communication" marker-end="url(#comm-arrow)" d="M554 325Q434 392 314 325" stroke-dasharray="4 4"/>
+  <g transform="translate(434 274)"><circle r="11" fill="#17191d" stroke="#43c982" stroke-width="1.5"/><text y="3" fill="#f4f6f8" text-anchor="middle" font-size="9" font-weight="700">3</text></g>
+  <g transform="translate(434 356)"><circle r="10" fill="#17191d" stroke="#43c982" stroke-width="1.5"/><text y="3" fill="#f4f6f8" text-anchor="middle" font-size="9" font-weight="700">1</text></g>
 
-  <g filter="url(#shadow)">
-    <rect x="460" y="118" width="280" height="78" rx="13" fill="var(--brand)"/>
-    <rect x="478" y="136" width="36" height="36" rx="10" fill="var(--brand-text)" opacity=".12"/>
-    <path d="M489 146h14a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3h-14a3 3 0 0 1-3-3v-11a3 3 0 0 1 3-3Zm-3 5h20" fill="none" stroke="var(--brand-text)" stroke-width="1.6" stroke-linecap="round"/>
-    <text x="528" y="151" class="root-label">Current Session</text><text x="528" y="171" class="root-meta">active root · reactive projection</text>
-    <circle cx="720" cy="139" r="4" fill="var(--blue)"/>
-  </g>
+  <g filter="url(#shadow)"><rect x="322" y="142" width="224" height="68" rx="11" fill="#f3f5f7"/><rect x="322" y="153" width="4" height="46" rx="2" fill="#7f9cff"/><rect x="338" y="159" width="30" height="30" rx="8" fill="#dfe4eb"/><path d="M347 167h12M347 174h12M347 181h8" stroke="#2a2e34" stroke-width="1.4" stroke-linecap="round"/><text x="380" y="172" fill="#17191d" font-size="13" font-weight="700">Current Session</text><text x="380" y="191" fill="#6f757e" font-size="10">Team Lead · running</text><circle cx="527" cy="161" r="3.5" fill="#6686ff"/></g>
 
-  <g><rect class="card" x="100" y="270" width="300" height="72" rx="12"/><rect x="116" y="286" width="34" height="34" rx="9" fill="var(--surface-2)"/><path d="M133 292v8M124 312v-7h18v7" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round"/><circle cx="133" cy="292" r="2.5" fill="none" stroke="var(--muted)" stroke-width="1.5"/><text x="164" y="300" class="label">Survey token data flow</text><text x="164" y="321" class="meta">continuable subagent</text><circle cx="380" cy="289" r="4" fill="var(--green)"/></g>
-  <g><rect class="card" x="450" y="270" width="300" height="72" rx="12"/><rect x="466" y="286" width="34" height="34" rx="9" fill="var(--blue-soft)"/><path d="M483 291v8M474 311v-7h18v7" fill="none" stroke="var(--blue)" stroke-width="1.6" stroke-linecap="round"/><circle cx="483" cy="291" r="2.5" fill="none" stroke="var(--blue)" stroke-width="1.5"/><text x="514" y="300" class="label">Workflow · Review</text><text x="514" y="321" class="meta">2 tasks · durable history</text><circle cx="730" cy="289" r="4" fill="var(--blue)"/></g>
-  <g><rect class="card" x="800" y="270" width="300" height="72" rx="12"/><rect x="816" y="286" width="34" height="34" rx="9" fill="var(--surface-2)"/><path d="M833 292v8M824 312v-7h18v7" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round"/><circle cx="833" cy="292" r="2.5" fill="none" stroke="var(--muted)" stroke-width="1.5"/><text x="864" y="300" class="label">Build native DAG UI</text><text x="864" y="321" class="meta">continuable subagent</text><circle cx="1080" cy="289" r="4" fill="var(--green)"/></g>
+  <g><rect class="card" x="90" y="278" width="224" height="74" rx="11"/><rect x="90" y="289" width="4" height="52" rx="2" fill="#6686ff"/><rect x="106" y="295" width="30" height="30" rx="8" fill="#292e36"/><circle cx="118" cy="305" r="4" fill="none" stroke="#7f9cff" stroke-width="1.4"/><path d="M110 319c1-6 15-6 16 0M128 304h6m-3-3v6" fill="none" stroke="#7f9cff" stroke-width="1.4" stroke-linecap="round"/><text x="148" y="308" class="label">Builder</text><text x="148" y="328" class="meta">Teammate · active</text><circle cx="295" cy="297" r="3.5" fill="#6686ff"/></g>
+  <g><rect class="card" x="554" y="278" width="224" height="74" rx="11"/><rect x="554" y="289" width="4" height="52" rx="2" fill="#6686ff"/><rect x="570" y="295" width="30" height="30" rx="8" fill="#292e36"/><circle cx="582" cy="305" r="4" fill="none" stroke="#7f9cff" stroke-width="1.4"/><path d="M574 319c1-6 15-6 16 0M592 304h6m-3-3v6" fill="none" stroke="#7f9cff" stroke-width="1.4" stroke-linecap="round"/><text x="612" y="308" class="label">Reviewer</text><text x="612" y="328" class="meta">Teammate · active</text><circle cx="759" cy="297" r="3.5" fill="#43c982"/></g>
 
-  <g><rect class="card" x="75" y="410" width="220" height="70" rx="11"/><text x="94" y="439" class="label">Host audit</text><text x="94" y="459" class="meta">completed</text><circle cx="275" cy="429" r="4" fill="var(--green)"/></g>
-  <g><rect class="card" x="325" y="410" width="220" height="70" rx="11"/><text x="344" y="439" class="label">Client review</text><text x="344" y="459" class="meta">completed</text><circle cx="525" cy="429" r="4" fill="var(--green)"/></g>
-  <g><rect class="card" x="675" y="410" width="220" height="70" rx="11"/><text x="694" y="439" class="label">Projection test</text><text x="694" y="459" class="meta">running</text><circle cx="875" cy="429" r="4" fill="var(--blue)"/></g>
-  <g><rect class="card" x="925" y="410" width="220" height="70" rx="11"/><text x="944" y="439" class="label">Lifecycle test</text><text x="944" y="459" class="meta">completed</text><circle cx="1125" cy="429" r="4" fill="var(--green)"/></g>
+  <g><rect class="card" x="52" y="400" width="224" height="76" rx="11"/><rect x="52" y="411" width="4" height="54" rx="2" fill="#d7a33d"/><text x="70" y="429" class="label">Implement graph model</text><text x="70" y="449" class="meta">task-1 · Builder</text><circle cx="257" cy="419" r="3.5" fill="#43c982"/><text x="70" y="465" fill="#43c982" font-size="9">COMPLETED</text></g>
+  <g><rect class="card" x="352" y="400" width="164" height="76" rx="11"/><rect x="352" y="411" width="4" height="54" rx="2" fill="#d7a33d"/><text x="370" y="429" class="label">Wire Team view</text><text x="370" y="449" class="meta">task-2 · Builder</text><circle cx="497" cy="419" r="3.5" fill="#6686ff"/><text x="370" y="465" fill="#6686ff" font-size="9">RUNNING</text></g>
+  <g><rect class="card" x="592" y="400" width="224" height="76" rx="11"/><rect x="592" y="411" width="4" height="54" rx="2" fill="#d7a33d"/><text x="610" y="429" class="label">Verify interactions</text><text x="610" y="449" class="meta">task-3 · Reviewer</text><circle cx="797" cy="419" r="3.5" fill="#d7a33d"/><text x="610" y="465" fill="#d7a33d" font-size="9">BLOCKED</text></g>
+
+  <rect x="870" y="113" width="329" height="448" fill="#1a1d22"/>
+  <text x="890" y="144" fill="#f4f6f8" font-size="13" font-weight="700">Agent communication</text>
+  <text x="890" y="163" class="meta">Builder → Reviewer</text>
+  <path d="M870 180H1199" stroke="#343941"/>
+  <g transform="translate(890 194)"><rect width="88" height="22" rx="11" fill="#292e36"/><text x="44" y="15" text-anchor="middle" class="caption">3 messages</text><rect x="96" width="112" height="22" rx="11" fill="#3a3021"/><text x="152" y="15" text-anchor="middle" fill="#e5ad45" font-size="9">1 queued</text></g>
+
+  <g transform="translate(890 234)"><rect width="289" height="86" rx="10" fill="#22262c" stroke="#343941"/><text x="12" y="20" class="caption">10:42:18</text><rect x="68" y="9" width="51" height="18" rx="5" fill="#2d333b"/><text x="93" y="21" text-anchor="middle" class="caption">quiet</text><rect x="126" y="9" width="62" height="18" rx="5" fill="#23382f"/><text x="157" y="21" text-anchor="middle" fill="#43c982" font-size="9">delivered</text><text x="12" y="48" fill="#f4f6f8" font-size="11">Graph model is ready. Please review</text><text x="12" y="66" fill="#f4f6f8" font-size="11">the dependency and assignment edges.</text></g>
+  <g transform="translate(890 330)"><rect width="289" height="86" rx="10" fill="#22262c" stroke="#343941"/><text x="12" y="20" class="caption">10:40:05</text><rect x="68" y="9" width="58" height="18" rx="5" fill="#2d333b"/><text x="97" y="21" text-anchor="middle" class="caption">wakeup</text><rect x="133" y="9" width="51" height="18" rx="5" fill="#3a3021"/><text x="158" y="21" text-anchor="middle" fill="#e5ad45" font-size="9">queued</text><text x="12" y="48" fill="#f4f6f8" font-size="11">The Workflow phase label needs one</text><text x="12" y="66" fill="#f4f6f8" font-size="11">more copy pass before release.</text></g>
+  <g transform="translate(890 426)"><rect width="289" height="74" rx="10" fill="#22262c" stroke="#343941"/><text x="12" y="20" class="caption">10:37:44 · quiet · delivered</text><text x="12" y="47" fill="#f4f6f8" font-size="11">Attached the dark-mode comparison.</text><text x="12" y="63" class="caption">1 non-text block: image ×1</text></g>
+
+  <rect x="1" y="562" width="1198" height="57" rx="0 0 18 18" fill="#202329"/>
+  <path d="M1 562H1199" stroke="#343941"/>
+  <g transform="translate(20 579)"><circle cx="4" cy="4" r="4" fill="#6686ff"/><text x="15" y="8" class="caption">Running</text><circle cx="83" cy="4" r="4" fill="#43c982"/><text x="94" y="8" class="caption">Completed</text><circle cx="177" cy="4" r="4" fill="#d7a33d"/><text x="188" y="8" class="caption">Blocked</text><path d="M265 4h20" stroke="#d7a33d" stroke-width="2"/><text x="293" y="8" class="caption">Task dependency</text><path d="M405 4h20" stroke="#43c982" stroke-width="2"/><text x="433" y="8" class="caption">Agent communication</text></g>
 </svg>

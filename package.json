@@ -1,7 +1,7 @@
 {
   "name": "dsh-task-dag",
-  "version": "1.2.0",
-  "description": "Persistent live DAG visualization for DeepSeek Harness subagents and workflows",
+  "version": "1.3.0",
+  "description": "Live Agent Teams task, communication, subagent, and Workflow topology for DeepSeek Harness",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node --check src/client.js && node --check src/graph-model.js && node --test scripts/graph-model.test.mjs && node scripts/build.mjs && node --check lib/client.js && node scripts/smoke.mjs",
+    "check": "node --check src/client.js && node --check src/graph-model.js && node --check src/team-projection.js && node --test scripts/graph-model.test.mjs scripts/team-projection.test.mjs && node scripts/build.mjs && node --check lib/client.js && node scripts/smoke.mjs",
     "prepublishOnly": "npm run check"
   },
   "dsh": {
@@ -56,6 +56,8 @@
     "deepseek-harness",
     "dag",
     "subagent",
+    "agent-teams",
+    "agent-communication",
     "workflow",
     "visualization"
   ],

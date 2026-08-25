@@ -10,7 +10,7 @@ Please do not open a public issue for a suspected vulnerability. Use GitHub's **
 
 ## Trust boundaries
 
-`dsh-task-dag` is a browser-only visualization plugin. It reads the Session and Conversation projections already exposed by the DSH Client runtime and renders an SVG graph.
+`dsh-task-dag` is a browser-only visualization plugin. It reads the Session and Conversation projections already exposed by the DSH Client runtime, including Agent Teams member, task, queued-message, and delivery snapshots, and renders an SVG graph. Message details extract text blocks only after the user selects a communication channel; non-text blocks are counted by type and are not recursively displayed.
 
 The plugin does not:
 
@@ -21,4 +21,4 @@ The plugin does not:
 - persist Session content or credentials;
 - add a Host RPC endpoint or polling loop.
 
-The packaged browser bundle is generated from `src/client.js` and `src/style.css`. CI rebuilds it and rejects any difference from the committed `lib/client.js` artifact.
+The packaged browser bundle is generated from `src/team-projection.js`, `src/graph-model.js`, `src/client.js`, and `src/style.css`. CI rebuilds it and rejects any difference from the committed `lib/client.js` artifact.

@@ -11,7 +11,11 @@ const ReactDOM = localRequire('react-dom')
 const { createRoot } = localRequire('react-dom/client')
 const { renderToStaticMarkup } = localRequire('react-dom/server')
 const Icon = () => React.createElement('svg', { 'aria-hidden': true })
+const CodeBlock = ({ code, lang, copyLabel }) => React.createElement('div', { className: 'mock-code-block', 'data-lang': lang },
+  React.createElement('button', { type: 'button', 'aria-label': copyLabel }, copyLabel),
+  React.createElement('pre', null, React.createElement('code', null, code)))
 const primitives = {
+  CodeBlock,
   IconCloseOutline16: Icon,
   IconFullscreenOutline16: Icon,
   IconRefreshOutline16: Icon,
@@ -103,6 +107,26 @@ const teamEvents = [
 const chatNodes = [
   ...teamEvents.map(projectTeam),
   {
+    id: 'workflow-call-1', kind: 'tool-call', anchorSeq: 2,
+    data: {
+      root: {
+        kind: 'tool-result', callId: 'workflow-call-1',
+        call: {
+          name: 'workflow',
+          argsRaw: JSON.stringify({
+            script: "phase('review')\nconst result = await agent('Review the implementation', { label: 'audit' })\nreturn { result }",
+            meta: {
+              name: 'quality',
+              description: 'Review the implementation before release.',
+              whenToUse: 'Use before shipping a graph change.',
+              phases: [{ title: 'review', detail: 'Inspect the graph behavior.', provider: 'spawn', model: 'fast' }],
+            },
+          }),
+        },
+      },
+    },
+  },
+  {
     id: 'run-1', kind: 'workflow-run', anchorSeq: 3,
     data: {
       name: 'quality', status: 'completed',
@@ -172,6 +196,23 @@ const dictionary = {
   'node.phaseTasks': '{count} 个成员',
   'node.open': '打开子代理会话 {name}',
   'node.drag': '拖动节点 {name}',
+  'node.inspectWorkflow': '预览 Workflow 定义 {name}',
+  'node.code': '可预览代码',
+  'workflowDefinition.title': 'Workflow 定义',
+  'workflowDefinition.summary': '{name} 的编排代码',
+  'workflowDefinition.description': '定义说明',
+  'workflowDefinition.whenToUse': '适用场景',
+  'workflowDefinition.phases': '阶段声明',
+  'workflowDefinition.code': '编排代码',
+  'workflowDefinition.lines': '{count} 行 JavaScript',
+  'workflowDefinition.phaseCount': '{count} 个声明阶段',
+  'workflowDefinition.provider': 'Provider · {name}',
+  'workflowDefinition.model': 'Model · {name}',
+  'workflowDefinition.copy': '复制代码',
+  'workflowDefinition.copied': '已复制',
+  'workflowDefinition.unavailable.title': '当前窗口没有可预览的定义',
+  'workflowDefinition.unavailable.body': '定义不在窗口中。',
+  'button.workflowDefinition.close': '关闭 Workflow 定义',
   'status.running': '运行中',
   'status.completed': '已完成',
   'status.failed': '失败',
@@ -295,6 +336,30 @@ if (document.querySelectorAll('.dsh-task-dag-node[data-type="workflow"]').length
   || document.querySelectorAll('.dsh-task-dag-node[data-type="phase"]').length !== 1) {
   throw new Error('Workflow view did not render run and phase topology')
 }
+const workflowRun = document.querySelector('.dsh-task-dag-node[data-type="workflow"]')
+if (workflowRun.getAttribute('role') !== 'button'
+  || workflowRun.getAttribute('aria-controls') !== 'dsh-task-dag-workflow-definition'
+  || workflowRun.getAttribute('aria-expanded') !== 'false'
+  || !workflowRun.getAttribute('aria-label')?.includes('预览 Workflow 定义')) {
+  throw new Error('Workflow run was not exposed as an accessible definition-preview action')
+}
+workflowRun.focus()
+await React.act(async () => { workflowRun.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+const definitionInspector = document.querySelector('.dsh-task-dag-definition-inspector')
+if (!definitionInspector?.textContent.includes("phase('review')")
+  || !definitionInspector.textContent.includes('Review the implementation before release.')
+  || !definitionInspector.textContent.includes('Inspect the graph behavior.')
+  || !definitionInspector.textContent.includes('Provider · spawn')) {
+  throw new Error('Workflow definition inspector did not render code and projected metadata')
+}
+if (workflowRun.getAttribute('data-selected') !== 'true' || workflowRun.getAttribute('aria-expanded') !== 'true') {
+  throw new Error('selected Workflow run was not visibly and accessibly marked')
+}
+await React.act(async () => { document.querySelector('[aria-label="关闭 Workflow 定义"]').click() })
+if (document.querySelector('.dsh-task-dag-definition-inspector') !== null
+  || workflowRun.getAttribute('aria-expanded') !== 'false' || document.activeElement !== workflowRun) {
+  throw new Error('Workflow definition inspector did not close and restore focus')
+}
 const viewport = document.querySelector('.dsh-task-dag-viewport')
 const original = document.querySelector('[aria-label="原始尺寸"]')
 await React.act(async () => { original.click() })
@@ -370,4 +435,4 @@ if (document.querySelectorAll('.dsh-task-dag-node[data-type="root"]').length !==
   throw new Error('root-only Overview did not render the current Session node')
 }
 await React.act(async () => { emptyRoot.unmount() })
-console.log('smoke ok: Team projection, three views, communication inspector, canvas controls, per-view layout, root-only Overview, and Session navigation')
+console.log('smoke ok: Team projection, three views, communication inspector, Workflow definition preview, canvas controls, per-view layout, root-only Overview, and Session navigation')

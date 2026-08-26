@@ -340,6 +340,7 @@ function addWorkflowGraph(builder, rootId, workflowNodes, summaries, details, t)
     for (const phase of phases) memberCount += Array.isArray(phase.members) ? phase.members.length : 0;
     const metaParts = [t('node.tasks', { count: memberCount })];
     if (phases.length > 1) metaParts.push(t('node.phases', { count: phases.length }));
+    if (data.definition?.script !== undefined) metaParts.push(t('node.code'));
     builder.addNode({
       id: workflowId,
       label: data.name || t('node.workflow'),
@@ -348,6 +349,8 @@ function addWorkflowGraph(builder, rootId, workflowNodes, summaries, details, t)
       status: normalizeStatus(data.status),
       navigable: false,
       navigationId: null,
+      inspectable: true,
+      definition: data.definition || null,
       order: viewNode.anchorSeq,
     });
     builder.addEdge({ from: rootId, to: workflowId, kind: 'workflow', layout: true });

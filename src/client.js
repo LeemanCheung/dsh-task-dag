@@ -7,7 +7,7 @@ const {
   Fragment, createElement: h, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } = React;
 const {
-  IconCloseOutline16, IconFullscreenOutline16, IconRefreshOutline16,
+  CodeBlock, IconCloseOutline16, IconFullscreenOutline16, IconRefreshOutline16,
 } = UI;
 
 const PACKAGE_ID = 'dsh-task-dag';
@@ -16,6 +16,7 @@ const MODES = ['overview', 'team', 'workflow'];
 const MESSAGE_DETAIL_LIMIT = 100;
 const { NODE_WIDTH, NODE_HEIGHT, buildGraph, graphLayout, normalizeStatus } = GRAPH_MODEL;
 const { TEAM_SNAPSHOT_KIND, createTeamSnapshotDefinition } = TEAM_PROJECTION;
+const { attachWorkflowDefinitions } = WORKFLOW_DEFINITION;
 
 const zh = {
   'title': '任务 DAG',
@@ -54,6 +55,23 @@ const zh = {
   'node.phaseTasks': '{count} 个成员',
   'node.open': '打开子代理会话 {name}',
   'node.drag': '拖动节点 {name}',
+  'node.inspectWorkflow': '预览 Workflow 定义 {name}',
+  'node.code': '可预览代码',
+  'workflowDefinition.title': 'Workflow 定义',
+  'workflowDefinition.summary': '{name} 的编排代码',
+  'workflowDefinition.description': '定义说明',
+  'workflowDefinition.whenToUse': '适用场景',
+  'workflowDefinition.phases': '阶段声明',
+  'workflowDefinition.code': '编排代码',
+  'workflowDefinition.lines': '{count} 行 JavaScript',
+  'workflowDefinition.phaseCount': '{count} 个声明阶段',
+  'workflowDefinition.provider': 'Provider · {name}',
+  'workflowDefinition.model': 'Model · {name}',
+  'workflowDefinition.copy': '复制代码',
+  'workflowDefinition.copied': '已复制',
+  'workflowDefinition.unavailable.title': '当前窗口没有可预览的定义',
+  'workflowDefinition.unavailable.body': '对应 workflow 工具调用可能已被会话窗口裁剪；运行拓扑仍然可用。',
+  'button.workflowDefinition.close': '关闭 Workflow 定义',
   'status.running': '运行中',
   'status.completed': '已完成',
   'status.failed': '失败',
@@ -90,7 +108,7 @@ const zh = {
   'empty.team.openLead': '打开上级 Session',
   'empty.workflow.title': '当前会话没有 Workflow 运行记录',
   'empty.workflow.body': '运行 workflow 后，阶段分组和已启动成员会从持久会话投影中出现。',
-  'hint': '拖动画布平移；拖动节点调整布局；点击 Agent 打开 Session；点击通信边查看时间线',
+  'hint': '拖动画布平移；拖动节点调整布局；点击 Workflow 查看定义；点击 Agent 打开 Session；点击通信边查看时间线',
 };
 
 const en = {
@@ -130,6 +148,23 @@ const en = {
   'node.phaseTasks': '{count} members',
   'node.open': 'Open subagent Session {name}',
   'node.drag': 'Drag node {name}',
+  'node.inspectWorkflow': 'Preview Workflow definition {name}',
+  'node.code': 'Code available',
+  'workflowDefinition.title': 'Workflow definition',
+  'workflowDefinition.summary': 'Orchestration code for {name}',
+  'workflowDefinition.description': 'Definition summary',
+  'workflowDefinition.whenToUse': 'When to use',
+  'workflowDefinition.phases': 'Declared phases',
+  'workflowDefinition.code': 'Orchestration code',
+  'workflowDefinition.lines': '{count} lines of JavaScript',
+  'workflowDefinition.phaseCount': '{count} declared phases',
+  'workflowDefinition.provider': 'Provider · {name}',
+  'workflowDefinition.model': 'Model · {name}',
+  'workflowDefinition.copy': 'Copy code',
+  'workflowDefinition.copied': 'Copied',
+  'workflowDefinition.unavailable.title': 'Definition unavailable in this window',
+  'workflowDefinition.unavailable.body': 'The matching workflow tool call may have fallen outside the Session window; the run topology remains available.',
+  'button.workflowDefinition.close': 'Close Workflow definition',
   'status.running': 'Running',
   'status.completed': 'Completed',
   'status.failed': 'Failed',
@@ -166,7 +201,7 @@ const en = {
   'empty.team.openLead': 'Open parent Session',
   'empty.workflow.title': 'No Workflow runs in this Session',
   'empty.workflow.body': 'Run a workflow to project its phase groups and started members here.',
-  'hint': 'Drag the canvas to pan; drag nodes to arrange; select an Agent to open its Session; select a communication edge for its timeline',
+  'hint': 'Drag the canvas to pan; drag nodes to arrange; select a Workflow to inspect its definition; select an Agent to open its Session; select a communication edge for its timeline',
 };
 
 function sameArray(left, right) {
@@ -241,8 +276,12 @@ function NodeGlyph({ type, x, y }) {
     h('g', { className: 'dsh-task-dag-node-icon', transform: 'translate(6 6)' }, glyph));
 }
 
-function GraphNode({ node, position, onDragEnd, onDragMove, onDragStart, onOpen, t }) {
-  const clickable = node.navigable && node.navigationId;
+function GraphNode({
+  node, position, onDragEnd, onDragMove, onDragStart, onInspectWorkflow, onOpen, selectedWorkflow, t,
+}) {
+  const navigable = node.navigable && node.navigationId;
+  const inspectable = node.type === 'workflow' && node.inspectable;
+  const interactive = navigable || inspectable;
   const dragRef = useRef(null);
   const activate = (event) => {
     if (dragRef.current?.moved) {
@@ -251,12 +290,14 @@ function GraphNode({ node, position, onDragEnd, onDragMove, onDragStart, onOpen,
       dragRef.current = null;
       return;
     }
-    if (clickable) onOpen(node.navigationId);
+    if (inspectable) onInspectWorkflow(node.id);
+    else if (navigable) onOpen(node.navigationId);
   };
   const onKeyDown = (event) => {
-    if (!clickable || (event.key !== 'Enter' && event.key !== ' ')) return;
+    if (!interactive || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
-    onOpen(node.navigationId);
+    if (inspectable) onInspectWorkflow(node.id);
+    else onOpen(node.navigationId);
   };
   const onPointerDown = (event) => {
     if (event.isPrimary === false || (event.button !== undefined && event.button !== 0)) return;
@@ -287,10 +328,16 @@ function GraphNode({ node, position, onDragEnd, onDragMove, onDragStart, onOpen,
     transform: `translate(${position.x} ${position.y})`,
     'data-type': node.type,
     'data-status': node.status,
-    'data-clickable': clickable ? 'true' : undefined,
-    role: clickable ? 'button' : undefined,
-    tabIndex: clickable ? 0 : undefined,
-    'aria-label': clickable ? `${t('node.open', { name: node.label })}. ${t('node.drag', { name: node.label })}` : undefined,
+    'data-clickable': interactive ? 'true' : undefined,
+    'data-selected': inspectable && selectedWorkflow === node.id ? 'true' : undefined,
+    'data-workflow-id': inspectable ? node.id : undefined,
+    role: interactive ? 'button' : undefined,
+    tabIndex: interactive ? 0 : undefined,
+    'aria-controls': inspectable ? 'dsh-task-dag-workflow-definition' : undefined,
+    'aria-expanded': inspectable ? selectedWorkflow === node.id : undefined,
+    'aria-label': inspectable
+      ? `${t('node.inspectWorkflow', { name: node.label })}. ${t('node.drag', { name: node.label })}`
+      : navigable ? `${t('node.open', { name: node.label })}. ${t('node.drag', { name: node.label })}` : undefined,
     onClick: activate,
     onKeyDown,
     onPointerDown,
@@ -386,8 +433,8 @@ function GraphEdge({ edge, positions, selected, onSelectCommunication, t }) {
 }
 
 function TaskGraph({
-  graph, layout, positions, showCommunications, selectedCommunication,
-  onSelectCommunication, onDragEnd, onDragMove, onDragStart, onOpen, t, fit,
+  graph, layout, positions, showCommunications, selectedCommunication, selectedWorkflow,
+  onSelectCommunication, onInspectWorkflow, onDragEnd, onDragMove, onDragStart, onOpen, t, fit,
 }) {
   const edges = graph.edges.filter(edge => edge.kind !== 'communication' || showCommunications);
   return h('svg', {
@@ -422,7 +469,9 @@ function TaskGraph({
     onDragEnd,
     onDragMove,
     onDragStart,
+    onInspectWorkflow,
     onOpen,
+    selectedWorkflow,
     t,
   })));
 }
@@ -515,6 +564,58 @@ function CommunicationInspector({ edge, onClose, t }) {
     })) : null);
 }
 
+function WorkflowDefinitionInspector({ node, onClose, t }) {
+  if (!node) return null;
+  const definition = node.definition;
+  const titleId = 'dsh-task-dag-workflow-definition-title';
+  const phases = definition?.meta?.phases || [];
+  const lineCount = definition ? definition.script.split(/\r\n?|\n/).length : 0;
+  return h('aside', {
+    id: 'dsh-task-dag-workflow-definition',
+    className: 'dsh-task-dag-inspector dsh-task-dag-definition-inspector',
+    'aria-labelledby': titleId,
+  },
+  h('header', { className: 'dsh-task-dag-inspector-header' },
+    h('div', null,
+      h('h3', { id: titleId }, t('workflowDefinition.title')),
+      h('p', null, t('workflowDefinition.summary', { name: node.label }))),
+    h('button', {
+      type: 'button', className: 'dsh-task-dag-icon-button',
+      title: t('button.workflowDefinition.close'), 'aria-label': t('button.workflowDefinition.close'), onClick: onClose,
+    }, h(IconCloseOutline16))),
+  definition === null ? h('div', { className: 'dsh-task-dag-definition-unavailable' },
+    h(DagMark, {}),
+    h('h4', null, t('workflowDefinition.unavailable.title')),
+    h('p', null, t('workflowDefinition.unavailable.body'))) : h(Fragment, null,
+    h('div', { className: 'dsh-task-dag-inspector-stats' },
+      h('span', null, t('workflowDefinition.lines', { count: lineCount })),
+      phases.length > 0 ? h('span', null, t('workflowDefinition.phaseCount', { count: phases.length })) : null),
+    h('div', { className: 'dsh-task-dag-definition-body' },
+      definition.meta.description ? h('section', { className: 'dsh-task-dag-definition-section' },
+        h('h4', null, t('workflowDefinition.description')),
+        h('p', null, definition.meta.description)) : null,
+      definition.meta.whenToUse ? h('section', { className: 'dsh-task-dag-definition-section' },
+        h('h4', null, t('workflowDefinition.whenToUse')),
+        h('p', null, definition.meta.whenToUse)) : null,
+      phases.length > 0 ? h('section', { className: 'dsh-task-dag-definition-section' },
+        h('h4', null, t('workflowDefinition.phases')),
+        h('ol', { className: 'dsh-task-dag-phase-definition-list' },
+          ...phases.map((phase, index) => h('li', { key: `${phase.title}:${index}` },
+            h('div', { className: 'dsh-task-dag-phase-definition-heading' },
+              h('strong', null, phase.title),
+              phase.provider ? h('span', null, t('workflowDefinition.provider', { name: phase.provider })) : null,
+              phase.model ? h('span', null, t('workflowDefinition.model', { name: phase.model })) : null),
+            phase.detail ? h('p', null, phase.detail) : null)))) : null,
+      h('section', { className: 'dsh-task-dag-definition-section dsh-task-dag-code-section' },
+        h('h4', null, t('workflowDefinition.code')),
+        h(CodeBlock, {
+          code: definition.script,
+          lang: 'javascript',
+          copyLabel: t('workflowDefinition.copy'),
+          copiedLabel: t('workflowDefinition.copied'),
+        })))));
+}
+
 function EmptyState({ mode, leadSessionId, onOpen, t }) {
   if (mode === 'overview') return null;
   return h('div', { className: 'dsh-task-dag-empty' },
@@ -536,9 +637,11 @@ function TaskDagDialog({
   const [position, setPosition] = useState(null);
   const [canvasDragging, setCanvasDragging] = useState(false);
   const [selectedCommunication, setSelectedCommunication] = useState(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const graph = graphs[mode];
   const layout = useMemo(() => graphLayout(graph), [graph]);
   const selectedEdge = graph.edges.find(edge => edge.id === selectedCommunication && edge.kind === 'communication');
+  const selectedWorkflowNode = graph.nodes.find(node => node.id === selectedWorkflow && node.type === 'workflow');
   const positions = useMemo(() => {
     const next = new Map(layout.positions);
     for (const node of graph.nodes) if (nodePositions[node.id] !== undefined) next.set(node.id, nodePositions[node.id]);
@@ -546,7 +649,10 @@ function TaskDagDialog({
   }, [graph.nodes, layout.positions, nodePositions]);
 
   useEffect(() => { panelRef.current?.focus({ preventScroll: true }); }, []);
-  useEffect(() => { setSelectedCommunication(null); }, [mode]);
+  useEffect(() => {
+    setSelectedCommunication(null);
+    setSelectedWorkflow(null);
+  }, [mode]);
   useEffect(() => {
     const nodeIds = new Set(graph.nodes.map(node => node.id));
     setNodePositions(current => {
@@ -657,12 +763,28 @@ function TaskDagDialog({
     canvasDragRef.current = null;
     setCanvasDragging(false);
   };
+  const selectCommunication = (id) => {
+    setSelectedWorkflow(null);
+    setSelectedCommunication(id);
+  };
+  const selectWorkflow = (id) => {
+    setSelectedCommunication(null);
+    setSelectedWorkflow(id);
+  };
   const closeInspector = () => {
     const id = selectedCommunication;
     setSelectedCommunication(null);
     queueMicrotask(() => {
       const elements = viewportRef.current?.querySelectorAll('[data-communication="true"]') || [];
       for (const element of elements) if (element.getAttribute('data-edge-id') === id) element.focus();
+    });
+  };
+  const closeWorkflowInspector = () => {
+    const id = selectedWorkflow;
+    setSelectedWorkflow(null);
+    queueMicrotask(() => {
+      const elements = viewportRef.current?.querySelectorAll('[data-workflow-id]') || [];
+      for (const element of elements) if (element.getAttribute('data-workflow-id') === id) element.focus();
     });
   };
   const structuralEdges = graph.edges.filter(edge => edge.kind !== 'communication').length;
@@ -714,7 +836,7 @@ function TaskDagDialog({
       className: 'dsh-task-dag-workspace',
       role: 'tabpanel',
       'aria-labelledby': `dsh-task-dag-tab-${mode}`,
-      'data-inspector': selectedEdge ? 'true' : undefined,
+      'data-inspector': selectedEdge || selectedWorkflowNode ? 'true' : undefined,
     },
       h('div', {
         ref: viewportRef,
@@ -727,11 +849,13 @@ function TaskDagDialog({
       },
       graph.nodes.length === 1 && mode !== 'overview' ? h(EmptyState, { mode, leadSessionId, onOpen, t }) : h(TaskGraph, {
         graph, layout, positions, fit, showCommunications,
-        selectedCommunication, onSelectCommunication: setSelectedCommunication,
+        selectedCommunication, selectedWorkflow,
+        onSelectCommunication: selectCommunication, onInspectWorkflow: selectWorkflow,
         onDragEnd: endNodeDrag, onDragMove: moveNodeDrag, onDragStart: beginNodeDrag,
         onOpen, t,
       })),
-      h(CommunicationInspector, { edge: selectedEdge, onClose: closeInspector, t })),
+      h(CommunicationInspector, { edge: selectedEdge, onClose: closeInspector, t }),
+      h(WorkflowDefinitionInspector, { node: selectedWorkflowNode, onClose: closeWorkflowInspector, t })),
     h('footer', { className: 'dsh-task-dag-footer' },
       h('div', { className: 'dsh-task-dag-footer-legends' },
         h(StatusLegend, { t }), h(EdgeLegend, { mode, showCommunications, t })),
@@ -746,7 +870,10 @@ function TaskDagAction({
   const ordinaryIds = useSessions(state => state.ids);
   const rootRunning = useSession(state => state.running);
   const chatNodes = useSession(state => state.chat.nodes.values(), sameArray);
-  const workflowNodes = useMemo(() => chatNodes.filter(node => node.kind === 'workflow-run'), [chatNodes]);
+  const workflowNodes = useMemo(() => attachWorkflowDefinitions(
+    chatNodes.filter(node => node.kind === 'workflow-run'),
+    chatNodes,
+  ), [chatNodes]);
   const teamNodes = useMemo(() => chatNodes.filter(node => node.kind === TEAM_SNAPSHOT_KIND), [chatNodes]);
   const [open, setOpen] = useState(false);
   const [fit, setFit] = useState(true);

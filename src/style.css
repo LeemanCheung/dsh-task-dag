@@ -409,9 +409,14 @@
   filter: drop-shadow(var(--dsw-shadow-lv1));
 }
 
-.dsh-task-dag-node[data-clickable="true"]:focus-visible .dsh-task-dag-node-card {
+.dsh-task-dag-node[data-clickable="true"]:focus-visible .dsh-task-dag-node-card,
+.dsh-task-dag-node[data-selected="true"] .dsh-task-dag-node-card {
   stroke: var(--dsw-alias-state-business-primary);
   stroke-width: 2;
+}
+
+.dsh-task-dag-node[data-selected="true"] .dsh-task-dag-node-card {
+  filter: drop-shadow(var(--dsw-shadow-lv1));
 }
 
 .dsh-task-dag-node[data-type="root"] .dsh-task-dag-node-card {
@@ -538,6 +543,124 @@
   flex-direction: column;
   border-left: 1px solid var(--dsw-alias-border-l1);
   background: var(--dsw-alias-bg-layer-1);
+}
+
+.dsh-task-dag-definition-inspector {
+  width: 408px;
+  min-width: 340px;
+}
+
+.dsh-task-dag-definition-body {
+  min-height: 0;
+  padding: 14px;
+  overflow: auto;
+}
+
+.dsh-task-dag-definition-section + .dsh-task-dag-definition-section {
+  margin-top: 17px;
+}
+
+.dsh-task-dag-definition-section h4 {
+  margin: 0 0 7px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 15px;
+  font-weight: 650;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.dsh-task-dag-definition-section > p {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.dsh-task-dag-phase-definition-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  list-style: none;
+}
+
+.dsh-task-dag-phase-definition-list li {
+  padding: 9px 10px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-left: 3px solid var(--dsh-task-dag-workflow);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.dsh-task-dag-phase-definition-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dsh-task-dag-phase-definition-heading strong {
+  margin-right: auto;
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dsh-task-dag-phase-definition-heading span {
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 9px;
+  line-height: 14px;
+}
+
+.dsh-task-dag-phase-definition-list p {
+  margin: 4px 0 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.dsh-task-dag-code-section {
+  min-width: 0;
+}
+
+.dsh-task-dag-code-section > div {
+  max-width: 100%;
+}
+
+.dsh-task-dag-definition-unavailable {
+  min-height: 0;
+  padding: 26px 22px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.dsh-task-dag-definition-unavailable > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dsh-task-dag-definition-unavailable h4 {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dsh-task-dag-definition-unavailable p {
+  max-width: 290px;
+  margin: 5px 0 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 16px;
 }
 
 .dsh-task-dag-inspector-header {
@@ -814,6 +937,10 @@
     height: min(42%, 320px);
     border-top: 1px solid var(--dsw-alias-border-l1);
     border-left: 0;
+  }
+
+  .dsh-task-dag-definition-inspector {
+    height: min(56%, 440px);
   }
 
   .dsh-task-dag-footer {

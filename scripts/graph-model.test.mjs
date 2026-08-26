@@ -20,6 +20,7 @@ const labels = {
   'node.tasks': '{count} members',
   'node.phases': '{count} phases',
   'node.phaseTasks': '{count} members',
+  'node.code': 'Code available',
 }
 const t = (key, values = {}) => Object.entries(values).reduce(
   (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
@@ -124,7 +125,9 @@ test('Workflow view creates explicit phase groups and preserves Session navigati
     ordinaryIds: ['root', 'child'],
     workflowNodes: [{
       id: 'review', anchorSeq: 5, data: {
-        name: 'Review', status: 'completed', phases: [
+        name: 'Review', status: 'completed',
+        definition: { script: 'return null', meta: { name: 'Review', description: '', phases: [] } },
+        phases: [
           { key: 'verify', phase: 'verify', members: [{ childId: 'child', seq: 1, label: 'Verified', status: 'failed' }] },
           { key: 'ship', phase: 'ship', members: [{ childId: 'second', seq: 2, label: 'Ship', status: 'completed' }] },
         ],
@@ -132,7 +135,11 @@ test('Workflow view creates explicit phase groups and preserves Session navigati
     }],
     mode: 'workflow',
   }))
+  const run = graph.nodes.find(node => node.id === 'workflow:review')
   const child = graph.nodes.find(node => node.id === 'workflow-member:review:1')
+  assert.equal(run.inspectable, true)
+  assert.equal(run.definition.script, 'return null')
+  assert.equal(run.meta.includes('Code available'), true)
   assert.equal(child.label, 'Verified')
   assert.equal(child.status, 'failed')
   assert.equal(child.navigationId, 'child')

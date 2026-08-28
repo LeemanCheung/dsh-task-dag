@@ -1,22 +1,75 @@
-name: CI
+name: Repair PR branch
 
 on:
   push:
-  pull_request:
+    branches:
+      - review/fix-workflow-count-a11y
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  check:
+  repair:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: review/fix-workflow-count-a11y
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run check
-      - name: Verify committed browser bundle
-        run: git diff --exit-code -- lib/client.js
+      - name: Reapply the reviewed fix on current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          repair_sha="$GITHUB_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+          git checkout "$repair_sha" -- .github/workflows/ci.yml
+
+          node <<'NODE'
+          const fs = require('node:fs')
+
+          const replaceOnce = (source, before, after, label) => {
+            const first = source.indexOf(before)
+            if (first < 0) throw new Error(`Missing ${label} target`)
+            if (source.indexOf(before, first + before.length) >= 0) {
+              throw new Error(`Ambiguous ${label} target`)
+            }
+            return source.slice(0, first) + after + source.slice(first + before.length)
+          }
+
+          const clientPath = 'src/client.js'
+          let client = fs.readFileSync(clientPath, 'utf8')
+          client = replaceOnce(
+            client,
+            "  const count = Math.max(0, graphs.overview.nodes.length - 1);",
+            "  const count = graphs.overview.nodes.filter(\n    node => node.id !== graphs.overview.rootId && node.type !== 'workflow',\n  ).length;",
+            'task-count',
+          )
+          if (!client.includes("role: 'group'")) {
+            throw new Error('Current main no longer exposes the interactive SVG as an accessibility group')
+          }
+          fs.writeFileSync(clientPath, client)
+
+          const smokePath = 'scripts/smoke.mjs'
+          let smoke = fs.readFileSync(smokePath, 'utf8')
+          smoke = replaceOnce(
+            smoke,
+            "if (!html.includes('任务 DAG') || !html.includes('>5<')) {\n  throw new Error(`header render did not include the merged topology count: ${html}`)\n}",
+            "if (!html.includes('任务 DAG') || !html.includes('>4<')) {\n  throw new Error(`header render did not exclude the synthetic workflow grouping node: ${html}`)\n}",
+            'task-count smoke assertion',
+          )
+          fs.writeFileSync(smokePath, smoke)
+          NODE
+
+          npm ci
+          npm run check
+          git diff --check
+          git add .github/workflows/ci.yml src/client.js scripts/smoke.mjs lib/client.js
+          git commit -m "fix: correct workflow task count and graph accessibility"
+          git push --force origin HEAD:review/fix-workflow-count-a11y

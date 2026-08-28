@@ -935,7 +935,9 @@ function TaskDagAction({
     ...current,
     [mode]: typeof update === 'function' ? update(current[mode]) : update,
   }));
-  const count = Math.max(0, graphs.overview.nodes.length - 1);
+  const count = graphs.overview.nodes.filter(
+    node => node.id !== graphs.overview.rootId && node.type !== 'workflow',
+  ).length;
 
   return h('div', { className: 'dsh-task-dag-root' },
     h('button', {

@@ -262,8 +262,8 @@ const props = {
   ...registration.options.inject(),
 }
 const html = renderToStaticMarkup(React.createElement(registration.component, props))
-if (!html.includes('任务 DAG') || !html.includes('>5<')) {
-  throw new Error(`header render did not include the merged topology count: ${html}`)
+if (!html.includes('任务 DAG') || !html.includes('>4<')) {
+  throw new Error(`header render did not exclude the synthetic workflow grouping node: ${html}`)
 }
 
 const mount = document.createElement('div')

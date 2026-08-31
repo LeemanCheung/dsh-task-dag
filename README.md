@@ -32,6 +32,7 @@
 Additional behavior:
 
 - **Agent communication:** directed channels aggregate message count and queued delivery state. Select a channel to inspect the latest 100 message records with quiet/wakeup and delivery metadata; only text blocks are previewed, while other block types are counted.
+- **Agent runtime metrics:** hover or keyboard-focus a teammate, subagent, or Workflow member to see the latest request Provider, model, concrete DSH effective reasoning-effort ID when one was durably recorded, its recorded source, and whole-Session cumulative input, output, cache, turn, and step totals. An effort materialized by DSH from Adapter defaults is labeled `Adapter default`; otherwise a recorded effort is labeled `Request config` without claiming whether it came from a preset, plugin, middleware, user choice, or an older Adapter. When the request omitted effort, the actual field remains `Not recorded`; an exact public model default may appear on a separate reference row and is never presented as proof of that historical call. GPT-5.6 Terra's OpenAI API model-page reference is [`medium`](https://developers.openai.com/api/docs/models/gpt-5.6-terra); the UI explicitly says this is not a record of the request.
 - **Direct navigation:** selectable teammate, subagent, and Workflow member nodes open the real Session when it remains visible in the Session list.
 - **Workflow definition preview:** select a Workflow run node to inspect the exact JavaScript orchestration body, definition summary, usage guidance, and declared phase metadata from its matching `workflow` tool call. The native code block can copy the full script; runtime `args` are deliberately not projected.
 - **Canvas control:** fit the whole topology, pan the original-size canvas, or drag nodes while connected edges update.
@@ -75,7 +76,7 @@ Restart the current DSH Web process once after the first installation, then refr
 For a version-pinned installation:
 
 ```powershell
-dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.4.0
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.5.0
 ```
 
 ## Using the graph
@@ -99,8 +100,9 @@ The dialog does not trap focus and does not provide keyboard dragging for the pa
 
 ![dsh-task-dag projection architecture](docs/architecture.svg)
 
-The browser plugin combines five Client-facing sources:
+The plugin combines six durable projections and Client-facing sources:
 
+- The Host-side `taskDagAgentMetrics` Session projection folds only the latest `request/header` Provider, model, concrete effective reasoning-effort ID, and the `adapterDefaults.reasoningEffort` source marker. DSH's `tokenUsage` and `sessionStats` projections provide whole-log cumulative values.
 - `SessionListState.byId` and `parentId` provide ordinary subagent lineage.
 - `SessionListState.subagentsByParent` provides labels, modes, activity, and catalog health.
 - Durable Agent Teams events provide members, shared tasks, queued messages, and delivery acknowledgements.
@@ -113,7 +115,8 @@ There is no model prompt contribution, model tool, Host RPC endpoint, network re
 
 ### Projection boundaries
 
-- Agent Teams writes the task board and message journal into the **Team Lead Session**. A teammate Session cannot read that log through this client-only plugin, so its Team view links back to the visible parent Session instead of adding a cross-Session Host RPC.
+- Agent Teams writes the task board and message journal into the **Team Lead Session**. A teammate Session cannot read that log across Sessions, so its Team view links back to the visible parent Session instead of adding a cross-Session Host RPC.
+- Runtime metrics come from registered whole-log projections. Token values are cumulative. Provider, model, and reasoning effort are the latest values in DSH's normalized request header; they are not reasoning-token counts or raw Provider wire parameters. `Adapter default` is shown only when the durable header records that marker. `src/reasoning-defaults.js` contains source-attributed public references for exact routes, but those references never replace a missing request value or service response.
 - `blockedBy` is the only edge presented as a real Team task dependency. Communication can be bidirectional and cyclic, so it is an overlay and never participates in DAG layering.
 - Persisted Workflow phases are progress groups. They do not reveal the complete internal `parallel()` or `pipeline()` control flow and are not labeled as execution dependencies.
 - Definition preview requires the matching `workflow` tool-call head to remain in the current Session window. If compaction or truncation removes it, the durable run topology remains visible and the inspector explains that the definition is unavailable; the plugin never guesses or reconstructs missing code.
@@ -122,7 +125,7 @@ There is no model prompt contribution, model tool, Host RPC endpoint, network re
 
 ## Security and permissions
 
-This is a browser-only, read-only visualization plugin. It does not read workspace files, execute commands, open network connections, register model tools, or persist Session content and credentials. Message previews and Workflow code come only from records already visible in the current Session, and appear on demand after the user selects a communication channel or Workflow run. Runtime Workflow `args` are excluded from the definition projection.
+This is a read-only visualization plugin. The Host half folds only Provider, model, reasoning effort, and its source from `request/header` into a small Session projection; the Client may add a clearly separated reference from the audited static Provider-default table. The plugin does not read workspace files, execute commands, open network connections, register model tools, or persist new Session content or credentials. Message previews and Workflow code come only from records already visible in the current Session, and appear on demand after the user selects a communication channel or Workflow run. Runtime Workflow `args`, system prompts, and tool schemas are excluded from the metrics projection.
 
 See [SECURITY.md](SECURITY.md) for the reporting policy and complete trust boundaries. Private vulnerability reporting is enabled for the repository.
 
@@ -135,11 +138,11 @@ npm install
 npm run check
 ```
 
-The check pipeline validates all source syntax; tests Team event projection, task and communication folding, Workflow definition extraction and run matching, Workflow grouping, arbitrary DAG layout, deep lineages, and cyclic fallback; rebuilds the browser bundle; then runs jsdom interaction coverage for three views, the communication timeline, Workflow code inspector, canvas controls, per-view node positions, focus, and Session navigation. CI also rejects drift in committed `lib/client.js`.
+The check pipeline validates all source syntax; tests request-config, Adapter-default, separated public-default references, unrecorded, legacy, and contradictory reasoning evidence, Team event projection, task and communication folding, Workflow definition extraction and run matching, Workflow grouping, arbitrary DAG layout, deep lineages, and cyclic fallback; rebuilds the Host and browser artifacts; then runs jsdom interaction coverage for three views, pointer and keyboard Agent metrics, focus-after-scroll, narrow viewports, non-navigable Agent nodes, communication timeline, Workflow code inspector, canvas controls, per-view node positions, and Session navigation. CI rejects drift in both committed Host and browser output.
 
 These are pure-model and jsdom checks rather than a complete DSH Web E2E environment. Before release, the linked package is additionally verified against the running Web profile in a real browser.
 
-`scripts/build.mjs` embeds `src/team-projection.js`, `src/workflow-definition.js`, `src/graph-model.js`, `src/client.js`, and `src/style.css` into committed `lib/client.js`. Do not edit the generated file directly.
+`scripts/build.mjs` copies `src/index.js` and `src/reasoning-defaults.js` into the Host `lib/` entries, then embeds the same reasoning-default resolver plus `src/team-projection.js`, `src/workflow-definition.js`, `src/graph-model.js`, `src/client.js`, and `src/style.css` into committed `lib/client.js`. Do not edit generated files directly.
 
 ## Troubleshooting
 

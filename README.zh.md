@@ -32,6 +32,7 @@
 其他能力：
 
 - **Agent 通信：** 按“发送方 → 接收方”聚合方向、消息数和待投递状态；点击通信边可查看最近 100 条消息的 quiet/wakeup 与投递元数据。界面仅预览文本 block，其他 block 只统计类型。
+- **Agent 运行指标：** 鼠标悬浮或键盘聚焦 teammate、子代理和 Workflow 成员节点时，显示最近一次请求的 Provider、模型、已持久记录的 DSH 有效思考深度具体级别及其来源，以及完整 Session 的累计输入、输出、缓存读写 Token 和轮次统计。DSH 明确标记由 Adapter 默认值物化的级别显示为“Adapter 默认”；其余已记录级别显示为“请求配置”，不臆断它来自 preset、插件、中间件、用户选择还是旧版 Adapter。请求省略级别时，实际字段仍显示“未记录”；公开模型默认只在单独的参考行展示，不能冒充该次历史调用的证明。GPT-5.6 Terra 的 OpenAI API 模型页参考是 [`medium`](https://developers.openai.com/api/docs/models/gpt-5.6-terra)；界面会明确标注它不是本次请求记录。
 - **直接导航：** 可点击的 teammate、子代理和 Workflow 成员节点会打开真实 Session，前提是该 Session 仍显示在 Session 列表中。
 - **Workflow 定义预览：** 点击 Workflow run 节点，可查看与其匹配的 `workflow` 工具调用中的原始 JavaScript 编排代码、定义说明、适用场景与阶段声明；原生代码块支持复制完整脚本，运行时 `args` 则不会被投影。
 - **画布控制：** 可适应全图、平移原始尺寸画布，或拖动节点并实时更新连线。
@@ -75,7 +76,7 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag
 固定安装指定版本：
 
 ```powershell
-dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.4.0
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.5.0
 ```
 
 ## 使用任务图
@@ -99,8 +100,9 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.4.0
 
 ![dsh-task-dag 投影架构](docs/architecture.svg)
 
-浏览器插件组合五类 Client 数据源：
+插件组合六类持久投影与 Client 数据源：
 
+- Host 侧 `taskDagAgentMetrics` Session 投影只折叠最近一个 `request/header` 的 Provider、模型、有效思考深度具体级别和 `adapterDefaults.reasoningEffort` 来源标记；DSH 的 `tokenUsage` 与 `sessionStats` 投影提供完整日志累计值。
 - `SessionListState.byId` 与 `parentId` 提供普通子代理血缘。
 - `SessionListState.subagentsByParent` 提供标签、模式、活动状态与目录健康信息。
 - 持久 Agent Teams 事件提供成员、共享任务、排队消息与投递回执。
@@ -113,7 +115,8 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.4.0
 
 ### 投影边界
 
-- Agent Teams 将任务板和消息日志写入 **Team Lead Session**。Teammate Session 无法通过这个纯 Client 插件读取 Lead 日志，因此 Team 视图会引导打开可见的父 Session，而不是新增跨 Session Host RPC。
+- Agent Teams 将任务板和消息日志写入 **Team Lead Session**。Teammate Session 无法跨 Session 读取 Lead 日志，因此 Team 视图会引导打开可见的父 Session，而不是新增跨 Session Host RPC。
+- 运行指标来自已注册的完整日志投影：Token 为累计值；Provider、模型与思考深度来自 DSH 归一化后的最近一次请求头，不等于推理 Token 数或 Provider 原始 wire 参数。只有持久请求头明确记录来源标记时才显示“Adapter 默认”。`src/reasoning-defaults.js` 只提供带公开来源与核验日期的精确路由参考，绝不替换缺失的请求值或服务端回执。
 - 只有 `blockedBy` 显示为真实 Team 任务依赖。通信可能双向成环，因此只作为覆盖层，永不参与 DAG 分层。
 - 持久 Workflow 阶段是进度分组，不能恢复脚本内部完整的 `parallel()` 或 `pipeline()` 控制流，界面不会将其标记为执行依赖。
 - 定义预览要求对应 `workflow` 工具调用头仍位于当前 Session 窗口。若压缩或截断移除了调用头，持久运行拓扑仍会显示，详情中则明确提示定义不可用；插件不会猜测或重建缺失代码。
@@ -122,7 +125,7 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.4.0
 
 ## 安全与权限
 
-这是一个仅运行在浏览器中的只读可视化插件。它不读取工作区文件、不执行命令、不发起网络连接、不注册模型工具，也不持久化 Session 内容或凭据。消息摘要和 Workflow 代码只来自当前 Session 已可见的记录，并且仅在用户选中通信链路或 Workflow run 后按需显示；运行时 Workflow `args` 不进入定义投影。
+这是一个只读可视化插件。Host 侧仅将 `request/header` 中的 Provider、模型、思考深度及来源折叠为小型 Session 投影；Client 侧读取该投影与 DSH 已有的 Token/会话统计，并可增加一行明确分隔的静态公开默认参考。插件不读取工作区文件、不执行命令、不发起网络连接、不注册模型工具，也不持久化新的 Session 内容或凭据。消息摘要和 Workflow 代码只来自当前 Session 已可见的记录，并且仅在用户选中通信链路或 Workflow run 后按需显示；运行时 Workflow `args`、系统 Prompt 和工具 Schema 不进入指标投影。
 
 安全报告方式与完整信任边界见 [SECURITY.md](SECURITY.md)。仓库已启用私密漏洞报告。
 
@@ -135,11 +138,11 @@ npm install
 npm run check
 ```
 
-检查流程会校验全部源码语法；测试 Team 事件投影、任务和通信折叠、Workflow 定义提取与运行匹配、Workflow 分组、任意 DAG 布局、深层血缘与异常环降级；重建浏览器 bundle；随后用 jsdom 覆盖三视图、通信时间线、Workflow 代码详情、画布控件、分视图节点位置、焦点及 Session 导航。CI 还会拒绝已提交 `lib/client.js` 的生成漂移。
+检查流程会校验全部源码语法；测试请求配置、Adapter 默认、分隔展示的公开默认参考、未记录、旧版和矛盾思考深度证据，以及 Team 事件投影、任务和通信折叠、Workflow 定义提取与运行匹配、Workflow 分组、任意 DAG 布局、深层血缘与异常环降级；重建 Host 与浏览器产物；随后用 jsdom 覆盖三视图、鼠标与键盘 Agent 指标、滚动后焦点、窄屏、不可导航 Agent 节点、通信时间线、Workflow 代码详情、画布控件、分视图节点位置及 Session 导航。CI 会同时拒绝 Host 与浏览器 `lib/` 生成漂移。
 
 这些是纯模型与 jsdom 检查，而不是完整的 DSH Web E2E 环境。发布前还会在真实浏览器中验证当前 Web profile 的链接安装。
 
-`scripts/build.mjs` 会将 `src/team-projection.js`、`src/workflow-definition.js`、`src/graph-model.js`、`src/client.js` 和 `src/style.css` 嵌入已提交的 `lib/client.js`。不要直接修改生成文件。
+`scripts/build.mjs` 会把 `src/index.js` 与 `src/reasoning-defaults.js` 复制到 Host 的 `lib/` 入口，并把同一默认值解析器连同 `src/team-projection.js`、`src/workflow-definition.js`、`src/graph-model.js`、`src/client.js` 和 `src/style.css` 嵌入已提交的 `lib/client.js`。不要直接修改生成文件。
 
 ## 排障
 

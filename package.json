@@ -1,6 +1,6 @@
 {
   "name": "dsh-task-dag",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Live Agent Teams task, communication, subagent, and Workflow topology for DeepSeek Harness",
   "type": "module",
   "main": "lib/index.js",
@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node --check src/client.js && node --check src/graph-model.js && node --check src/team-projection.js && node --check src/workflow-definition.js && node --test scripts/graph-model.test.mjs scripts/team-projection.test.mjs scripts/workflow-definition.test.mjs && node scripts/build.mjs && node --check lib/client.js && node scripts/smoke.mjs",
+    "check": "node --check src/index.js && node --check src/client.js && node --check src/reasoning-defaults.js && node --check src/graph-model.js && node --check src/team-projection.js && node --check src/workflow-definition.js && node --test scripts/reasoning-defaults.test.mjs scripts/metrics-projection.test.mjs scripts/graph-model.test.mjs scripts/team-projection.test.mjs scripts/workflow-definition.test.mjs && node scripts/build.mjs && node --check lib/index.js && node --check lib/reasoning-defaults.js && node --check lib/client.js && node scripts/smoke.mjs",
     "prepublishOnly": "npm run check"
   },
   "dsh": {

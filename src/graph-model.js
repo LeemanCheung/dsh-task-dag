@@ -1,3 +1,5 @@
+import { publicReasoningReference } from './reasoning-defaults.js';
+
 export const NODE_WIDTH = 224;
 export const NODE_HEIGHT = 76;
 const X_GAP = 30;
@@ -39,6 +41,57 @@ function typeLabel(type, t) {
     case 'root': return t('node.current');
     default: return t('node.subagent');
   }
+}
+
+function nonnegativeNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function agentMetrics(summary) {
+  const projections = summary?.projectionValues;
+  if (projections === undefined || projections === null || typeof projections !== 'object') return null;
+  const route = projections.taskDagAgentMetrics;
+  const usage = projections.tokenUsage;
+  const stats = projections.sessionStats;
+  const metrics = {};
+  if (route && typeof route === 'object' && typeof route.provider === 'string' && typeof route.model === 'string') {
+    metrics.provider = route.provider;
+    metrics.model = route.model;
+    const hasRecordedEffort = typeof route.reasoningEffort === 'string' && route.reasoningEffort.trim() !== '';
+    const publicDefaultReference = hasRecordedEffort
+      ? undefined : publicReasoningReference(route.provider, route.model);
+    if (hasRecordedEffort) metrics.reasoningEffort = route.reasoningEffort;
+    metrics.reasoningSource = hasRecordedEffort && (route.reasoningSource === 'request-config'
+      || route.reasoningSource === 'adapter-default')
+      ? route.reasoningSource : 'not-recorded';
+    if (publicDefaultReference !== undefined) {
+      metrics.reasoningReference = {
+        effort: publicDefaultReference.effort,
+        kind: 'public-api-model-reference',
+        evidenceScope: publicDefaultReference.evidenceScope,
+        verifiedOn: publicDefaultReference.verifiedOn,
+        historicalClaim: false,
+      };
+    }
+  }
+  if (usage && typeof usage === 'object') {
+    const uncachedInputTokens = nonnegativeNumber(usage.uncachedInputTokens);
+    const outputTokens = nonnegativeNumber(usage.outputTokens);
+    const cacheReadTokens = nonnegativeNumber(usage.cacheReadTokens);
+    const cacheWriteTokens = nonnegativeNumber(usage.cacheWriteTokens);
+    metrics.usage = {
+      totalTokens: uncachedInputTokens + outputTokens + cacheReadTokens + cacheWriteTokens,
+      inputTokens: uncachedInputTokens + cacheReadTokens + cacheWriteTokens,
+      outputTokens,
+      cacheReadTokens,
+      cacheWriteTokens,
+    };
+  }
+  if (stats && typeof stats === 'object') {
+    metrics.turns = nonnegativeNumber(stats.turns);
+    metrics.steps = nonnegativeNumber(stats.steps);
+  }
+  return Object.keys(metrics).length === 0 ? null : metrics;
 }
 
 function catalogIndex(catalogs) {
@@ -205,6 +258,7 @@ function addTeamGraph(builder, rootId, summaries, details, team, t) {
       navigationId: member.id,
       order: snapshot.seq,
       description: member.description,
+      metrics: agentMetrics(summary),
     });
     builder.addEdge({ from: rootId, to: id, kind: 'team', layout: true });
     sessionNodes.set(member.id, id);
@@ -226,6 +280,7 @@ function addTeamGraph(builder, rootId, summaries, details, team, t) {
       navigable: builder.ordinary.has(sessionId),
       navigationId: sessionId,
       order: summary?.updatedAt || 0,
+      metrics: agentMetrics(summary),
     });
     builder.addEdge({ from: rootId, to: id, kind: 'team', layout: true });
     sessionNodes.set(sessionId, id);
@@ -390,6 +445,7 @@ function addWorkflowGraph(builder, rootId, workflowNodes, summaries, details, t)
           navigable: builder.ordinary.has(member.childId),
           navigationId: member.childId,
           order: Number.isFinite(member.seq) ? member.seq : memberIndex,
+          metrics: agentMetrics(summaries[member.childId]),
         });
         builder.addEdge({ from: parentId, to: id, kind: 'workflow', layout: true });
         memberSessionIds.add(member.childId);
@@ -418,6 +474,7 @@ function addGenericSubagents(builder, rootId, summaries, details, groupedSession
       navigable: builder.ordinary.has(summary.id),
       navigationId: summary.id,
       order: summary.updatedAt || 0,
+      metrics: agentMetrics(summary),
     });
     const parentId = summary.parentId === rootId
       ? rootId

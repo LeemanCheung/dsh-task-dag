@@ -10,7 +10,7 @@ Please do not open a public issue for a suspected vulnerability. Use GitHub's **
 
 ## Trust boundaries
 
-`dsh-task-dag` is a browser-only visualization plugin. It reads the Session and Conversation projections already exposed by the DSH Client runtime, including Agent Teams member, task, queued-message, delivery, Workflow run, and root tool-call snapshots, and renders an SVG graph. Message details extract text blocks only after the user selects a communication channel; non-text blocks are counted by type and are not recursively displayed. Workflow definition preview parses the matching tool call's already-visible JSON and copies only the JavaScript body plus definition metadata into an owned projection; runtime `args`, outputs, and unrelated tool inputs are excluded.
+`dsh-task-dag` is a read-only Host and browser visualization plugin. Its Host half registers one small Session projection that copies only Provider, model, optional reasoning-effort, and its source marker from the latest durable `request/header`; a missing effort remains missing. System prompts, tool schemas, stop sequences, and other request fields are excluded. Its Client half reads that projection alongside DSH's existing cumulative token and Session statistics, plus the Session and Conversation projections for Agent Teams members, tasks, messages, deliveries, Workflow runs, and root tool-call snapshots, then renders an SVG graph. `src/reasoning-defaults.js` may add a visibly separate public-reference row, but never rewrites missing request evidence. Message details extract text blocks only after the user selects a communication channel; non-text blocks are counted by type and are not recursively displayed. Workflow definition preview parses the matching tool call's already-visible JSON and copies only the JavaScript body plus definition metadata into an owned projection; runtime `args`, outputs, and unrelated tool inputs are excluded.
 
 The plugin does not:
 
@@ -18,7 +18,7 @@ The plugin does not:
 - read or write workspace files;
 - execute shell commands;
 - make network requests;
-- persist Session content or credentials;
+- append Session events or persist credentials;
 - add a Host RPC endpoint or polling loop.
 
-The packaged browser bundle is generated from `src/team-projection.js`, `src/workflow-definition.js`, `src/graph-model.js`, `src/client.js`, and `src/style.css`. CI rebuilds it and rejects any difference from the committed `lib/client.js` artifact.
+The packaged Host entries are copied from `src/index.js` and `src/reasoning-defaults.js`; the browser bundle embeds the same resolver with `src/team-projection.js`, `src/workflow-definition.js`, `src/graph-model.js`, `src/client.js`, and `src/style.css`. CI rebuilds all generated entries and rejects differences from committed `lib/` artifacts.

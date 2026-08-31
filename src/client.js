@@ -57,6 +57,27 @@ const zh = {
   'node.drag': '拖动节点 {name}',
   'node.inspectWorkflow': '预览 Workflow 定义 {name}',
   'node.code': '可预览代码',
+  'metrics.aria': '{name} 的运行信息',
+  'metrics.title': 'Agent 运行信息',
+  'metrics.live': '随持久会话投影更新',
+  'metrics.provider': 'Provider',
+  'metrics.model': '模型',
+  'metrics.reasoning': '思考强度',
+  'metrics.effortMissing': '未记录',
+  'metrics.sourceSelected': '请求配置',
+  'metrics.sourceAdapterDefault': 'Adapter 默认',
+  'metrics.sourceUnknown': '来源未记录',
+  'metrics.publicDefaultReference': 'OpenAI API 模型页默认参考',
+  'metrics.requestNotRecorded': '非本次请求记录',
+  'metrics.referenceVerified': '核验 {date}',
+  'metrics.tokens': 'Token 使用',
+  'metrics.total': '合计',
+  'metrics.input': '输入',
+  'metrics.output': '输出',
+  'metrics.cacheRead': '缓存读取',
+  'metrics.cacheWrite': '缓存写入',
+  'metrics.turns': '{turns} 轮 · {steps} 步',
+  'metrics.unavailable': '暂未收到该 Agent 的模型或 Token 指标',
   'workflowDefinition.title': 'Workflow 定义',
   'workflowDefinition.summary': '{name} 的编排代码',
   'workflowDefinition.description': '定义说明',
@@ -150,6 +171,27 @@ const en = {
   'node.drag': 'Drag node {name}',
   'node.inspectWorkflow': 'Preview Workflow definition {name}',
   'node.code': 'Code available',
+  'metrics.aria': 'Runtime details for {name}',
+  'metrics.title': 'Agent runtime',
+  'metrics.live': 'Updated from durable Session projections',
+  'metrics.provider': 'Provider',
+  'metrics.model': 'Model',
+  'metrics.reasoning': 'Reasoning effort',
+  'metrics.effortMissing': 'Not recorded',
+  'metrics.sourceSelected': 'Request config',
+  'metrics.sourceAdapterDefault': 'Adapter default',
+  'metrics.sourceUnknown': 'Source not recorded',
+  'metrics.publicDefaultReference': 'OpenAI API model-page default reference',
+  'metrics.requestNotRecorded': 'not a record of this request',
+  'metrics.referenceVerified': 'verified {date}',
+  'metrics.tokens': 'Token usage',
+  'metrics.total': 'Total',
+  'metrics.input': 'Input',
+  'metrics.output': 'Output',
+  'metrics.cacheRead': 'Cache read',
+  'metrics.cacheWrite': 'Cache write',
+  'metrics.turns': '{turns} turns · {steps} steps',
+  'metrics.unavailable': 'No model or token metrics have been reported for this Agent yet',
   'workflowDefinition.title': 'Workflow definition',
   'workflowDefinition.summary': 'Orchestration code for {name}',
   'workflowDefinition.description': 'Definition summary',
@@ -222,6 +264,96 @@ function truncate(value, length) {
   return chars.length <= length ? chars.join('') : `${chars.slice(0, length - 1).join('')}…`;
 }
 
+function tokenCount(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function isAgentNode(node) {
+  return ['one-shot', 'continuable', 'subagent', 'teammate', 'workflow-member'].includes(node.type);
+}
+
+function reasoningLabel(metrics, t) {
+  const effort = typeof metrics?.reasoningEffort === 'string' && metrics.reasoningEffort.trim() !== ''
+    ? metrics.reasoningEffort : null;
+  if (effort === null) return t('metrics.effortMissing');
+  const source = metrics.reasoningSource === 'adapter-default'
+    ? t('metrics.sourceAdapterDefault')
+    : metrics.reasoningSource === 'request-config'
+      ? t('metrics.sourceSelected')
+      : t('metrics.sourceUnknown');
+  return `${effort} · ${source}`;
+}
+
+function tooltipPosition(anchor, width, height) {
+  const margin = 12;
+  const gap = 10;
+  const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+  const left = Math.max(margin, Math.min(maxLeft, anchor.left + anchor.width / 2 - width / 2));
+  const below = anchor.bottom + gap;
+  const maxTop = Math.max(margin, window.innerHeight - height - margin);
+  const top = below + height <= window.innerHeight - margin
+    ? below : Math.max(margin, Math.min(maxTop, anchor.top - height - gap));
+  return { left, top };
+}
+
+function NodeMetricsTooltip({ anchor, node, t }) {
+  const tooltipRef = useRef(null);
+  const availableWidth = Math.max(0, window.innerWidth - 24);
+  const width = Math.min(286, availableWidth);
+  const valid = Boolean(anchor && node && isAgentNode(node));
+  const [position, setTooltipPosition] = useState({ left: 12, top: 12 });
+  useLayoutEffect(() => {
+    if (!valid) return;
+    const measuredHeight = tooltipRef.current?.getBoundingClientRect().height || 252;
+    const height = Math.min(measuredHeight, Math.max(0, window.innerHeight - 24));
+    const next = tooltipPosition(anchor, width, height);
+    setTooltipPosition(current => current.left === next.left && current.top === next.top ? current : next);
+  }, [valid, node?.id, anchor?.left, anchor?.top, anchor?.right, anchor?.bottom, anchor?.width, anchor?.height, width]);
+  if (!valid) return null;
+  const metrics = node.metrics;
+  const usage = metrics?.usage;
+  const hasRoute = metrics?.provider && metrics?.model;
+  const hasStats = metrics && Number.isFinite(metrics.turns) && Number.isFinite(metrics.steps);
+  return ReactDOM.createPortal(h('aside', {
+    id: `dsh-task-dag-metrics-${node.id.replace(/[^a-zA-Z0-9_-]/gu, '-')}`,
+    ref: tooltipRef,
+    className: 'dsh-task-dag-metrics-tooltip',
+    style: { left: position.left, top: position.top, width },
+    role: 'tooltip',
+  },
+  h('header', { className: 'dsh-task-dag-metrics-header' },
+    h('div', null,
+      h('span', { className: 'dsh-task-dag-metrics-eyebrow' }, t('metrics.title')),
+      h('strong', null, node.label)),
+    h('span', { className: 'dsh-task-dag-metrics-status', 'data-status': node.status }, statusLabel(node.status, t))),
+  typeof node.description === 'string' && node.description.trim() !== ''
+    ? h('p', { className: 'dsh-task-dag-metrics-description' }, node.description)
+    : null,
+  hasRoute ? h('dl', { className: 'dsh-task-dag-route-grid' },
+    h('div', null, h('dt', null, t('metrics.provider')), h('dd', null, metrics.provider)),
+    h('div', null, h('dt', null, t('metrics.model')), h('dd', null, metrics.model)),
+    h('div', { className: 'dsh-task-dag-route-wide' },
+      h('dt', null, t('metrics.reasoning')), h('dd', null, reasoningLabel(metrics, t))),
+    metrics.reasoningReference?.kind === 'public-api-model-reference'
+      ? h('div', { className: 'dsh-task-dag-route-wide' },
+        h('dt', null, t('metrics.publicDefaultReference')),
+        h('dd', null, `${metrics.reasoningReference.effort} · ${t('metrics.requestNotRecorded')} · ${t('metrics.referenceVerified', { date: metrics.reasoningReference.verifiedOn })}`))
+      : null) : null,
+  usage ? h('section', { className: 'dsh-task-dag-token-section' },
+    h('div', { className: 'dsh-task-dag-token-heading' },
+      h('span', null, `${t('metrics.tokens')} · ${t('metrics.total')}`),
+      h('strong', null, tokenCount(usage.totalTokens))),
+    h('dl', { className: 'dsh-task-dag-token-grid' },
+      h('div', null, h('dt', null, t('metrics.input')), h('dd', null, tokenCount(usage.inputTokens))),
+      h('div', null, h('dt', null, t('metrics.output')), h('dd', null, tokenCount(usage.outputTokens))),
+      h('div', null, h('dt', null, t('metrics.cacheRead')), h('dd', null, tokenCount(usage.cacheReadTokens))),
+      h('div', null, h('dt', null, t('metrics.cacheWrite')), h('dd', null, tokenCount(usage.cacheWriteTokens))))) : null,
+  !hasRoute && !usage ? h('p', { className: 'dsh-task-dag-metrics-empty' }, t('metrics.unavailable')) : null,
+  h('footer', { className: 'dsh-task-dag-metrics-footer' },
+    h('span', null, t('metrics.live')),
+    hasStats ? h('span', null, t('metrics.turns', { turns: metrics.turns, steps: metrics.steps })) : null)), document.body);
+}
+
 function DagMark({ className }) {
   return h('svg', { className, viewBox: '0 0 18 18', fill: 'none', 'aria-hidden': true },
     h('path', { d: 'M9 5.2v2.1M4.2 10.2V8.3H13.8v1.9', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round' }),
@@ -277,11 +409,17 @@ function NodeGlyph({ type, x, y }) {
 }
 
 function GraphNode({
-  node, position, onDragEnd, onDragMove, onDragStart, onInspectWorkflow, onOpen, selectedWorkflow, t,
+  node, position, onDragEnd, onDragMove, onDragStart, onHideMetrics, onInspectWorkflow,
+  onOpen, onShowMetrics, metricsVisible, selectedWorkflow, t,
 }) {
   const navigable = node.navigable && node.navigationId;
   const inspectable = node.type === 'workflow' && node.inspectable;
-  const interactive = navigable || inspectable;
+  const actionable = navigable || inspectable;
+  const metricsTarget = isAgentNode(node);
+  const focusable = actionable || metricsTarget;
+  const metricsId = `dsh-task-dag-metrics-${node.id.replace(/[^a-zA-Z0-9_-]/gu, '-')}`;
+  const hasDescription = typeof node.description === 'string' && node.description.trim() !== '';
+  const descriptionId = `dsh-task-dag-description-${node.id.replace(/[^a-zA-Z0-9_-]/gu, '-')}`;
   const dragRef = useRef(null);
   const activate = (event) => {
     if (dragRef.current?.moved) {
@@ -294,7 +432,7 @@ function GraphNode({
     else if (navigable) onOpen(node.navigationId);
   };
   const onKeyDown = (event) => {
-    if (!interactive || (event.key !== 'Enter' && event.key !== ' ')) return;
+    if (!actionable || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
     if (inspectable) onInspectWorkflow(node.id);
     else onOpen(node.navigationId);
@@ -302,6 +440,7 @@ function GraphNode({
   const onPointerDown = (event) => {
     if (event.isPrimary === false || (event.button !== undefined && event.button !== 0)) return;
     event.stopPropagation();
+    onHideMetrics(node.id);
     dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
     onDragStart(node.id, event);
     if (typeof event.currentTarget.setPointerCapture === 'function') event.currentTarget.setPointerCapture(event.pointerId);
@@ -322,30 +461,47 @@ function GraphNode({
     onDragEnd(event);
     if (!drag.moved || event.type === 'pointercancel') dragRef.current = null;
   };
-  const title = [node.label, node.meta, statusLabel(node.status, t), node.description].filter(Boolean).join('\n');
+  const showMetrics = event => {
+    if (!metricsTarget) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    onShowMetrics(node.id, {
+      left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+      width: rect.width, height: rect.height,
+    });
+  };
   return h('g', {
     className: 'dsh-task-dag-node',
     transform: `translate(${position.x} ${position.y})`,
+    'data-node-id': node.id,
     'data-type': node.type,
     'data-status': node.status,
-    'data-clickable': interactive ? 'true' : undefined,
+    'data-clickable': actionable ? 'true' : undefined,
     'data-selected': inspectable && selectedWorkflow === node.id ? 'true' : undefined,
     'data-workflow-id': inspectable ? node.id : undefined,
-    role: interactive ? 'button' : undefined,
-    tabIndex: interactive ? 0 : undefined,
+    role: actionable ? 'button' : metricsTarget || hasDescription ? 'group' : undefined,
+    tabIndex: focusable ? 0 : undefined,
     'aria-controls': inspectable ? 'dsh-task-dag-workflow-definition' : undefined,
+    'aria-describedby': metricsTarget
+      ? metricsVisible ? metricsId : undefined
+      : hasDescription ? descriptionId : undefined,
     'aria-expanded': inspectable ? selectedWorkflow === node.id : undefined,
     'aria-label': inspectable
       ? `${t('node.inspectWorkflow', { name: node.label })}. ${t('node.drag', { name: node.label })}`
-      : navigable ? `${t('node.open', { name: node.label })}. ${t('node.drag', { name: node.label })}` : undefined,
+      : navigable
+        ? `${t('node.open', { name: node.label })}. ${t('node.drag', { name: node.label })}`
+        : metricsTarget ? t('metrics.aria', { name: node.label }) : undefined,
     onClick: activate,
+    onFocus: showMetrics,
+    onBlur: () => onHideMetrics(node.id),
     onKeyDown,
+    onPointerEnter: showMetrics,
+    onPointerLeave: event => { if (document.activeElement !== event.currentTarget) onHideMetrics(node.id); },
     onPointerDown,
     onPointerMove,
     onPointerUp: onPointerEnd,
     onPointerCancel: onPointerEnd,
   },
-  h('title', null, title),
+  !metricsTarget && hasDescription ? h('desc', { id: descriptionId }, node.description) : null,
   h('rect', { className: 'dsh-task-dag-node-card', width: NODE_WIDTH, height: NODE_HEIGHT, rx: 11 }),
   h('rect', { className: 'dsh-task-dag-node-accent', width: 4, height: NODE_HEIGHT - 20, x: 0, y: 10, rx: 2 }),
   h(NodeGlyph, { type: node.type, x: 0, y: 0 }),
@@ -434,7 +590,8 @@ function GraphEdge({ edge, positions, selected, onSelectCommunication, t }) {
 
 function TaskGraph({
   graph, layout, positions, showCommunications, selectedCommunication, selectedWorkflow,
-  onSelectCommunication, onInspectWorkflow, onDragEnd, onDragMove, onDragStart, onOpen, t, fit,
+  onSelectCommunication, onHideMetrics, onInspectWorkflow, onDragEnd, onDragMove, onDragStart,
+  onOpen, onShowMetrics, hoveredMetricsNodeId, t, fit,
 }) {
   const edges = graph.edges.filter(edge => edge.kind !== 'communication' || showCommunications);
   return h('svg', {
@@ -469,8 +626,11 @@ function TaskGraph({
     onDragEnd,
     onDragMove,
     onDragStart,
+    onHideMetrics,
     onInspectWorkflow,
     onOpen,
+    onShowMetrics,
+    metricsVisible: hoveredMetricsNodeId === node.id,
     selectedWorkflow,
     t,
   })));
@@ -638,20 +798,41 @@ function TaskDagDialog({
   const [canvasDragging, setCanvasDragging] = useState(false);
   const [selectedCommunication, setSelectedCommunication] = useState(null);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
+  const [hoveredMetrics, setHoveredMetrics] = useState(null);
   const graph = graphs[mode];
   const layout = useMemo(() => graphLayout(graph), [graph]);
   const selectedEdge = graph.edges.find(edge => edge.id === selectedCommunication && edge.kind === 'communication');
   const selectedWorkflowNode = graph.nodes.find(node => node.id === selectedWorkflow && node.type === 'workflow');
+  const hoveredMetricsNode = graph.nodes.find(node => node.id === hoveredMetrics?.nodeId);
   const positions = useMemo(() => {
     const next = new Map(layout.positions);
     for (const node of graph.nodes) if (nodePositions[node.id] !== undefined) next.set(node.id, nodePositions[node.id]);
     return next;
   }, [graph.nodes, layout.positions, nodePositions]);
 
+  const syncFocusedMetrics = () => {
+    const active = document.activeElement;
+    const nodeId = active?.matches?.('.dsh-task-dag-node[data-node-id]')
+      ? active.getAttribute('data-node-id') : null;
+    if (nodeId === null) {
+      setHoveredMetrics(null);
+      return;
+    }
+    const rect = active.getBoundingClientRect();
+    setHoveredMetrics({
+      nodeId,
+      anchor: {
+        left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+        width: rect.width, height: rect.height,
+      },
+    });
+  };
+
   useEffect(() => { panelRef.current?.focus({ preventScroll: true }); }, []);
   useEffect(() => {
     setSelectedCommunication(null);
     setSelectedWorkflow(null);
+    setHoveredMetrics(null);
   }, [mode]);
   useEffect(() => {
     const nodeIds = new Set(graph.nodes.map(node => node.id));
@@ -665,6 +846,11 @@ function TaskDagDialog({
       return changed ? next : current;
     });
   }, [layout.signature]);
+  useEffect(() => {
+    const onResize = () => syncFocusedMetrics();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [mode, layout.signature]);
   useLayoutEffect(() => {
     if (fit) return;
     const viewport = viewportRef.current;
@@ -740,6 +926,7 @@ function TaskDagDialog({
       || event.target?.closest?.('.dsh-task-dag-communication')) return;
     const viewport = viewportRef.current;
     if (!viewport) return;
+    setHoveredMetrics(null);
     canvasDragRef.current = {
       pointerId: event.pointerId, startX: event.clientX, startY: event.clientY,
       scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop,
@@ -763,6 +950,8 @@ function TaskDagDialog({
     canvasDragRef.current = null;
     setCanvasDragging(false);
   };
+  const showMetrics = (nodeId, anchor) => setHoveredMetrics({ nodeId, anchor });
+  const hideMetrics = nodeId => setHoveredMetrics(current => current?.nodeId === nodeId ? null : current);
   const selectCommunication = (id) => {
     setSelectedWorkflow(null);
     setSelectedCommunication(id);
@@ -844,6 +1033,7 @@ function TaskDagDialog({
         'data-fit': fit ? 'true' : undefined,
         'data-panning': canvasDragging ? 'true' : undefined,
         role: 'region', 'aria-label': t('canvas.aria'), tabIndex: 0,
+        onScroll: syncFocusedMetrics,
         onPointerDown: beginCanvasDrag, onPointerMove: moveCanvasDrag,
         onPointerUp: endCanvasDrag, onPointerCancel: endCanvasDrag,
       },
@@ -852,10 +1042,13 @@ function TaskDagDialog({
         selectedCommunication, selectedWorkflow,
         onSelectCommunication: selectCommunication, onInspectWorkflow: selectWorkflow,
         onDragEnd: endNodeDrag, onDragMove: moveNodeDrag, onDragStart: beginNodeDrag,
+        onHideMetrics: hideMetrics, onShowMetrics: showMetrics,
+        hoveredMetricsNodeId: hoveredMetrics?.nodeId,
         onOpen, t,
       })),
       h(CommunicationInspector, { edge: selectedEdge, onClose: closeInspector, t }),
       h(WorkflowDefinitionInspector, { node: selectedWorkflowNode, onClose: closeWorkflowInspector, t })),
+    h(NodeMetricsTooltip, { anchor: hoveredMetrics?.anchor, node: hoveredMetricsNode, t }),
     h('footer', { className: 'dsh-task-dag-footer' },
       h('div', { className: 'dsh-task-dag-footer-legends' },
         h(StatusLegend, { t }), h(EdgeLegend, { mode, showCommunications, t })),

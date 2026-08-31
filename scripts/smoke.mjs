@@ -70,6 +70,9 @@ const style = document.head.querySelector('style[data-plugin="dsh-task-dag"]')
 if (style === null || !style.textContent.includes('.dsh-task-dag-inspector')) {
   throw new Error('client stylesheet was not installed')
 }
+if (!style.textContent.includes('max-height: calc(100vh - 24px)')) {
+  throw new Error('Agent metrics tooltip is missing viewport height constraints')
+}
 if (registration?.options.id !== 'task-dag') throw new Error('header registration missing')
 if (teamDefinition?.kind !== 'task-dag-team-snapshot') throw new Error('Team snapshot definition missing')
 
@@ -87,6 +90,10 @@ function projectTeam(event) {
 }
 
 const teamEvents = [
+  {
+    type: 'team/member', seq: 9, time: 1720000000009,
+    data: { version: 1, teamId: 'root', member: { id: 'ghost', name: 'Archived Agent', description: 'No longer in the Session list', phase: 'inactive' } },
+  },
   {
     type: 'team/member', seq: 10, time: 1720000000010,
     data: { version: 1, teamId: 'root', member: { id: 'child', name: 'Audit Agent', description: 'Review the change', phase: 'active' } },
@@ -142,7 +149,24 @@ const list = {
   ids: ['root', 'child'],
   byId: {
     root: { id: 'root', displayTitle: 'Root Session', running: true, blank: false, updatedAt: 1 },
-    child: { id: 'child', displayTitle: 'Worker', origin: 'subagent', parentId: 'root', running: false, completed: true, blank: false, updatedAt: 2 },
+    child: {
+      id: 'child', displayTitle: 'Worker', origin: 'subagent', parentId: 'root', running: false, completed: true, blank: false, updatedAt: 2,
+      projectionValues: {
+        taskDagAgentMetrics: {
+          provider: 'openai-codex', model: 'gpt-5.6-terra', reasoningSource: 'not-recorded',
+        },
+        tokenUsage: { uncachedInputTokens: 1_200, outputTokens: 345, cacheReadTokens: 4_000, cacheWriteTokens: 55 },
+        sessionStats: { turns: 3, steps: 5 },
+      },
+    },
+    ghost: {
+      id: 'ghost', displayTitle: 'Archived Agent', origin: 'subagent', parentId: 'root', running: false, completed: true, blank: false, updatedAt: 1,
+      projectionValues: {
+        taskDagAgentMetrics: {
+          provider: 'openai', model: 'gpt-5.6-terra', reasoningSource: 'not-recorded',
+        },
+      },
+    },
   },
   current: 'root',
   phase: 'ready',
@@ -198,6 +222,27 @@ const dictionary = {
   'node.drag': '拖动节点 {name}',
   'node.inspectWorkflow': '预览 Workflow 定义 {name}',
   'node.code': '可预览代码',
+  'metrics.aria': '{name} 的运行信息',
+  'metrics.title': 'Agent 运行信息',
+  'metrics.live': '随持久会话投影更新',
+  'metrics.provider': 'Provider',
+  'metrics.model': '模型',
+  'metrics.reasoning': '思考强度',
+  'metrics.effortMissing': '未记录',
+  'metrics.sourceSelected': '请求配置',
+  'metrics.sourceAdapterDefault': 'Adapter 默认',
+  'metrics.sourceUnknown': '来源未记录',
+  'metrics.publicDefaultReference': 'OpenAI API 模型页默认参考',
+  'metrics.requestNotRecorded': '非本次请求记录',
+  'metrics.referenceVerified': '核验 {date}',
+  'metrics.tokens': 'Token 使用',
+  'metrics.total': '合计',
+  'metrics.input': '输入',
+  'metrics.output': '输出',
+  'metrics.cacheRead': '缓存读取',
+  'metrics.cacheWrite': '缓存写入',
+  'metrics.turns': '{turns} 轮 · {steps} 步',
+  'metrics.unavailable': '暂未收到指标',
   'workflowDefinition.title': 'Workflow 定义',
   'workflowDefinition.summary': '{name} 的编排代码',
   'workflowDefinition.description': '定义说明',
@@ -262,8 +307,8 @@ const props = {
   ...registration.options.inject(),
 }
 const html = renderToStaticMarkup(React.createElement(registration.component, props))
-if (!html.includes('任务 DAG') || !html.includes('>4<')) {
-  throw new Error(`header render did not exclude the synthetic workflow grouping node: ${html}`)
+if (!html.includes('任务 DAG') || !html.includes('>5<')) {
+  throw new Error(`header render did not count the metrics-only Agent while excluding the synthetic workflow grouping node: ${html}`)
 }
 
 const mount = document.createElement('div')
@@ -284,6 +329,71 @@ const pointer = (type, x, y, pointerId = 7) => {
   Object.defineProperty(event, 'pointerId', { value: pointerId })
   return event
 }
+const measuredAgent = document.querySelector('.dsh-task-dag-node[data-node-id="agent:child"]')
+if (measuredAgent === null) throw new Error('measured Agent node did not render')
+if (measuredAgent.querySelector('title') !== null) throw new Error('Agent node retained the browser-native SVG tooltip')
+await React.act(async () => { measuredAgent.dispatchEvent(pointer('pointerover', 100, 100)) })
+const metricsTooltip = document.querySelector('.dsh-task-dag-metrics-tooltip')
+if (metricsTooltip === null
+  || !metricsTooltip.textContent.includes('gpt-5.6-terra')
+  || !metricsTooltip.textContent.includes('未记录')
+  || !metricsTooltip.textContent.includes('medium')
+  || !metricsTooltip.textContent.includes('OpenAI API 模型页默认参考')
+  || !metricsTooltip.textContent.includes('非本次请求记录')
+  || !metricsTooltip.textContent.includes('核验 2026-08-31')
+  || !metricsTooltip.textContent.includes('Review the change')
+  || !metricsTooltip.textContent.includes('5,600')) {
+  throw new Error('Agent hover did not expose its description and separate missing request evidence from its public model-default reference')
+}
+await React.act(async () => { measuredAgent.dispatchEvent(pointer('pointerout', 100, 100)) })
+if (document.querySelector('.dsh-task-dag-metrics-tooltip') !== null) throw new Error('Agent metrics tooltip did not close on leave')
+
+const originalViewportSize = { width: window.innerWidth, height: window.innerHeight }
+Object.defineProperty(window, 'innerWidth', { configurable: true, value: 300 })
+Object.defineProperty(window, 'innerHeight', { configurable: true, value: 300 })
+measuredAgent.getBoundingClientRect = () => ({ left: 30, top: 90, right: 254, bottom: 166, width: 224, height: 76 })
+await React.act(async () => { measuredAgent.focus() })
+let focusedTooltip = document.querySelector('.dsh-task-dag-metrics-tooltip')
+if (focusedTooltip === null
+  || measuredAgent.getAttribute('aria-describedby') !== focusedTooltip.id
+  || focusedTooltip.hasAttribute('aria-label')
+  || !focusedTooltip.textContent.includes('gpt-5.6-terra')
+  || !focusedTooltip.textContent.includes('medium')
+  || !focusedTooltip.textContent.includes('Review the change')
+  || !focusedTooltip.textContent.includes('5,600')
+  || focusedTooltip.style.width !== '276px'
+  || Number.parseFloat(focusedTooltip.style.left) < 12
+  || Number.parseFloat(focusedTooltip.style.top) < 12) {
+  throw new Error('keyboard-focused Agent tooltip did not expose its full description or fit a 300px viewport')
+}
+const metricsViewport = document.querySelector('.dsh-task-dag-viewport')
+await React.act(async () => { metricsViewport.dispatchEvent(new window.Event('scroll')) })
+focusedTooltip = document.querySelector('.dsh-task-dag-metrics-tooltip')
+if (focusedTooltip === null || measuredAgent.getAttribute('aria-describedby') !== focusedTooltip.id) {
+  throw new Error('focused Agent tooltip was lost or left a dangling description after scrolling')
+}
+await React.act(async () => { measuredAgent.blur() })
+if (document.querySelector('.dsh-task-dag-metrics-tooltip') !== null
+  || measuredAgent.hasAttribute('aria-describedby')) {
+  throw new Error('Agent metrics tooltip or description remained after blur')
+}
+Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalViewportSize.width })
+Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalViewportSize.height })
+
+const archivedAgent = document.querySelector('.dsh-task-dag-node[data-node-id="agent:ghost"]')
+if (archivedAgent?.getAttribute('role') !== 'group' || archivedAgent.tabIndex !== 0
+  || archivedAgent.hasAttribute('data-clickable')) {
+  throw new Error('non-navigable Agent metrics node was not keyboard-focusable without pretending to be clickable')
+}
+await React.act(async () => { archivedAgent.focus() })
+const archivedTooltip = document.querySelector('.dsh-task-dag-metrics-tooltip')
+if (!archivedTooltip?.textContent.includes('medium')
+  || !archivedTooltip.textContent.includes('OpenAI API 模型页默认参考')
+  || !archivedTooltip.textContent.includes('非本次请求记录')) {
+  throw new Error('non-navigable OpenAI API Agent focus did not expose a separate public reference')
+}
+await React.act(async () => { archivedAgent.blur() })
+
 const close = document.querySelector('[aria-label="关闭任务 DAG"]')
 await React.act(async () => {
   const down = pointer('pointerdown', 10, 10, 1)
@@ -302,7 +412,16 @@ if (tabs[1].getAttribute('aria-selected') !== 'true' || document.activeElement !
 if (document.querySelector('[role="tabpanel"]')?.getAttribute('aria-labelledby') !== tabs[1].id) {
   throw new Error('view tabs were not associated with their active panel')
 }
-if (document.querySelectorAll('.dsh-task-dag-node').length !== 3) throw new Error('Team view did not show lead, member, and task')
+if (document.querySelectorAll('.dsh-task-dag-node').length !== 4) throw new Error('Team view did not show lead, two members, and task')
+const describedTask = document.querySelector('.dsh-task-dag-node[data-node-id="team-task:task-1"]')
+const taskDescription = describedTask?.querySelector('desc')
+if (describedTask?.getAttribute('role') !== 'group'
+  || taskDescription === null
+  || describedTask.getAttribute('aria-describedby') !== taskDescription.id
+  || taskDescription.textContent !== 'Check the visual flow'
+  || describedTask.querySelector('title') !== null) {
+  throw new Error('non-Agent task did not retain an owned accessible description without a native SVG tooltip')
+}
 let communication = document.querySelector('.dsh-task-dag-communication')
 if (communication === null) throw new Error('communication edge did not render')
 await React.act(async () => { communication.dispatchEvent(new window.MouseEvent('click', { bubbles: true })) })
@@ -435,4 +554,4 @@ if (document.querySelectorAll('.dsh-task-dag-node[data-type="root"]').length !==
   throw new Error('root-only Overview did not render the current Session node')
 }
 await React.act(async () => { emptyRoot.unmount() })
-console.log('smoke ok: Team projection, three views, communication inspector, Workflow definition preview, canvas controls, per-view layout, root-only Overview, and Session navigation')
+console.log('smoke ok: concrete reasoning sources, pointer and keyboard metrics, narrow/scroll accessibility, three views, inspectors, canvas controls, and Session navigation')

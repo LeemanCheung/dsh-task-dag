@@ -167,6 +167,83 @@ test('Overview keeps ungrouped descendants while avoiding duplicate Team and Wor
   assert.equal(graph.nodes.filter(node => node.navigationId === 'plain').length, 1)
 })
 
+test('Agent nodes expose route, token, and session metrics from durable projections', () => {
+  const summaries = {
+    root,
+    child: {
+      id: 'child', displayTitle: 'Measured child', origin: 'subagent', parentId: 'root', updatedAt: 2,
+      projectionValues: {
+        taskDagAgentMetrics: {
+          provider: 'openai', model: 'gpt-5.6', reasoningEffort: 'high', reasoningSource: 'adapter-default',
+        },
+        tokenUsage: {
+          uncachedInputTokens: 1_200,
+          outputTokens: 345,
+          cacheReadTokens: 4_000,
+          cacheWriteTokens: 55,
+        },
+        sessionStats: { turns: 3, steps: 5 },
+      },
+    },
+  }
+  const graph = buildGraph(graphInput({ summaries, ordinaryIds: ['root', 'child'] }))
+  assert.deepEqual(graph.nodes.find(node => node.id === 'agent:child').metrics, {
+    provider: 'openai',
+    model: 'gpt-5.6',
+    reasoningEffort: 'high',
+    reasoningSource: 'adapter-default',
+    usage: {
+      totalTokens: 5_600,
+      inputTokens: 5_255,
+      outputTokens: 345,
+      cacheReadTokens: 4_000,
+      cacheWriteTokens: 55,
+    },
+    turns: 3,
+    steps: 5,
+  })
+})
+
+test('Agent reasoning provenance keeps public defaults separate from recorded request evidence', () => {
+  const routes = {
+    selected: { provider: 'openai', model: 'gpt-5.6', reasoningEffort: 'xhigh', reasoningSource: 'request-config' },
+    providerDefault: { provider: 'openai-codex', model: 'gpt-5.6-terra', reasoningSource: 'not-recorded' },
+    missing: { provider: 'deepseek', model: 'deepseek-v4', reasoningSource: 'not-recorded' },
+    legacy: { provider: 'openai', model: 'gpt-5.6', reasoningEffort: 'medium' },
+    contradictory: { provider: 'openai', model: 'gpt-5.6', reasoningEffort: 'low', reasoningSource: 'not-recorded' },
+  }
+  const summaries = { root }
+  for (const [id, route] of Object.entries(routes)) {
+    summaries[id] = {
+      id, displayTitle: id, origin: 'subagent', parentId: 'root', updatedAt: 2,
+      projectionValues: { taskDagAgentMetrics: route },
+    }
+  }
+  const graph = buildGraph(graphInput({ summaries, ordinaryIds: Object.keys(summaries) }))
+  const metrics = id => graph.nodes.find(node => node.id === `agent:${id}`).metrics
+  assert.deepEqual(metrics('selected'), {
+    provider: 'openai', model: 'gpt-5.6', reasoningEffort: 'xhigh', reasoningSource: 'request-config',
+  })
+  assert.deepEqual(metrics('providerDefault'), {
+    provider: 'openai-codex', model: 'gpt-5.6-terra',
+    reasoningSource: 'not-recorded',
+    reasoningReference: {
+      effort: 'medium', kind: 'public-api-model-reference',
+      evidenceScope: 'openai-api-model-page-reference-for-codex-route',
+      verifiedOn: '2026-08-31', historicalClaim: false,
+    },
+  })
+  assert.deepEqual(metrics('missing'), {
+    provider: 'deepseek', model: 'deepseek-v4', reasoningSource: 'not-recorded',
+  })
+  assert.deepEqual(metrics('legacy'), {
+    provider: 'openai', model: 'gpt-5.6', reasoningEffort: 'medium', reasoningSource: 'not-recorded',
+  })
+  assert.deepEqual(metrics('contradictory'), {
+    provider: 'openai', model: 'gpt-5.6', reasoningEffort: 'low', reasoningSource: 'not-recorded',
+  })
+})
+
 test('graphLayout is deterministic for deep lineages and cyclic dependency input', () => {
   const summaries = { root }
   let parentId = 'root'

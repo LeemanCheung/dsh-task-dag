@@ -535,6 +535,181 @@
   fill: var(--dsw-alias-state-warn-primary);
 }
 
+.dsh-task-dag-metrics-tooltip {
+  position: fixed;
+  z-index: 2147482003;
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 11px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: var(--dsw-shadow-lv3);
+  pointer-events: none;
+  animation: dsh-task-dag-tooltip-in .14s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.dsh-task-dag-metrics-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dsh-task-dag-metrics-header > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.dsh-task-dag-metrics-eyebrow {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 9px;
+  line-height: 13px;
+  font-weight: 650;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.dsh-task-dag-metrics-header strong {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-task-dag-metrics-description {
+  margin: 9px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.dsh-task-dag-metrics-status {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 9px;
+  line-height: 14px;
+}
+
+.dsh-task-dag-metrics-status[data-status="running"] {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.dsh-task-dag-metrics-status[data-status="completed"] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.dsh-task-dag-metrics-status[data-status="failed"] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dsh-task-dag-route-grid {
+  margin: 12px 0 0;
+  padding: 10px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px 12px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+}
+
+.dsh-task-dag-route-grid > .dsh-task-dag-route-wide {
+  grid-column: 1 / -1;
+}
+
+.dsh-task-dag-route-grid div,
+.dsh-task-dag-token-grid div {
+  min-width: 0;
+}
+
+.dsh-task-dag-route-grid dt,
+.dsh-task-dag-token-grid dt {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.dsh-task-dag-route-grid dd,
+.dsh-task-dag-token-grid dd {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 10px;
+  line-height: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-task-dag-token-section {
+  margin-top: 10px;
+}
+
+.dsh-task-dag-token-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.dsh-task-dag-token-heading strong {
+  color: var(--dsw-alias-label-primary);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.dsh-task-dag-token-grid {
+  margin: 7px 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px;
+}
+
+.dsh-task-dag-token-grid dd {
+  font-variant-numeric: tabular-nums;
+}
+
+.dsh-task-dag-metrics-empty {
+  margin: 12px 0 0;
+  padding: 10px;
+  border-radius: 7px;
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.dsh-task-dag-metrics-footer {
+  margin-top: 11px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--dsw-alias-label-caption);
+  font-size: 8px;
+  line-height: 12px;
+}
+
+@keyframes dsh-task-dag-tooltip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .dsh-task-dag-inspector {
   width: 326px;
   min-width: 286px;
@@ -985,5 +1160,9 @@
   .dsh-task-dag-icon-button,
   .dsh-task-dag-node-card {
     transition: none;
+  }
+
+  .dsh-task-dag-metrics-tooltip {
+    animation: none;
   }
 }

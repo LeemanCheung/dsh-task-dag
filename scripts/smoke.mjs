@@ -4,6 +4,17 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
+if (manifest.version !== '1.5.1') throw new Error('package version drifted')
+if (manifest.dsh?.compatibility?.dshReleases?.['0.1.2-rc.1'] !== 'unknown') {
+  throw new Error('DSH 0.1.2-rc.1 must remain unknown until isolated Web Profile validation')
+}
+if (manifest.dsh?.client?.inject?.includes('@deepseek-ai/dsh-client-runtime')) {
+  throw new Error('removed dsh-client-runtime package is still injected')
+}
+for (const required of ['@deepseek-ai/dsh-api-session-controller', '@deepseek-ai/dsh-client-ui-renderer']) {
+  if (!manifest.dsh?.client?.inject?.includes(required)) throw new Error(`missing DSH 0.1.2 client package: ${required}`)
+}
 const localRequire = createRequire(import.meta.url)
 const { JSDOM } = localRequire('jsdom')
 const React = localRequire('react')

@@ -1,6 +1,6 @@
 {
   "name": "dsh-task-dag",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Live Agent Teams task, communication, subagent, and Workflow topology for DeepSeek Harness",
   "type": "module",
   "main": "lib/index.js",
@@ -33,13 +33,23 @@
     },
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-primitives",
+        "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-workflow-run"
       ],
       "platform": "web"
+    },
+    "compatibility": {
+      "dsh": ">=0.1.2-rc.1 <0.2.0",
+      "dshReleases": {
+        "0.1.2-rc.1": "unknown"
+      },
+      "profiles": [
+        "web"
+      ]
     }
   },
   "repository": {
@@ -65,19 +75,23 @@
     "node": ">=20"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-locale": "*",
-    "@deepseek-ai/dsh-client-runtime": "*",
-    "@deepseek-ai/dsh-client-ui-conversation": "*",
-    "@deepseek-ai/dsh-client-ui-primitives": "*",
-    "@deepseek-ai/dsh-client-ui-workflow-run": "*",
+    "@deepseek-ai/dsh-api-session-controller": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-locale": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-conversation": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-workflow-run": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-session-projection": "^0.1.2-rc.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-client-locale": { "optional": true },
-    "@deepseek-ai/dsh-client-runtime": { "optional": true },
+    "@deepseek-ai/dsh-api-session-controller": { "optional": true },
     "@deepseek-ai/dsh-client-ui-conversation": { "optional": true },
     "@deepseek-ai/dsh-client-ui-primitives": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-renderer": { "optional": true },
+    "@deepseek-ai/dsh-session-projection": { "optional": true },
     "@deepseek-ai/dsh-client-ui-workflow-run": { "optional": true }
   },
   "devDependencies": {

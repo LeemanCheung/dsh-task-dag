@@ -67,7 +67,7 @@ Workflow 验证分别返回 `alpha-ok`、`beta-ok` 和 `summary-ok`；两项验�
 
 ## 安装
 
-`1.5.1` 源码面向 DSH `0.1.2-rc.1`，已迁移到该版本的 Session Controller 与 UI Renderer。完成隔离 Web Profile 的安装、加载和真实页面验收前，包清单会把这一精确 DSH 版本标为 `unknown`。Provider、模型或思考强度没有被持久请求头记录时，界面继续明确显示缺失，不会补默认值。
+`1.5.1` 源码面向 DSH `0.1.2-rc.1`，已迁移到该版本的 Session Controller、UI Renderer 和 `uiConversation.events` 注册表。完成隔离 Web Profile 的安装、加载和真实页面验收前，包清单会把这一精确 DSH 版本标为 `unknown`。Provider、模型或思考强度没有被持久请求头记录时，界面继续明确显示缺失，不会补默认值。
 
 ```powershell
 dsh plugin --profile web add github:LeemanCheung/dsh-task-dag

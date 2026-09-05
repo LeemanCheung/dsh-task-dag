@@ -1150,10 +1150,10 @@ function TaskDagAction({
     }), document.body) : null);
 }
 
-const inject = ['sessions', 'slots', 'locale', 'conversationEvents'];
+const inject = ['sessions', 'slots', 'locale', 'uiConversation'];
 
 function apply(ctx) {
-  ctx.effect(() => ctx.conversationEvents.register(createTeamSnapshotDefinition()), 'task-dag: Team snapshots');
+  ctx.effect(() => ctx.uiConversation.events.register(createTeamSnapshotDefinition()), 'task-dag: Team snapshots');
   ctx.effect(() => {
     const tag = document.createElement('style');
     tag.dataset.plugin = PACKAGE_ID;

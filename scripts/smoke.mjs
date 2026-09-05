@@ -52,7 +52,7 @@ const plugin = loaded.factory((id) => {
   if (id === '@deepseek-ai/dsh-client-ui-primitives') return primitives
   throw new Error(`unexpected client require: ${id}`)
 })
-if (plugin.inject.join(',') !== 'sessions,slots,locale,conversationEvents') {
+if (plugin.inject.join(',') !== 'sessions,slots,locale,uiConversation') {
   throw new Error('client inject list drifted')
 }
 
@@ -62,7 +62,9 @@ let openedSession
 const ctx = {
   effect(install) { install() },
   locale: { register() { return () => {} } },
-  conversationEvents: { register(definition) { teamDefinition = definition; return () => {} } },
+  uiConversation: {
+    events: { register(definition) { teamDefinition = definition; return () => {} } },
+  },
   sessions: {
     open(id) { openedSession = id },
     refreshSubagents() { return Promise.resolve() },

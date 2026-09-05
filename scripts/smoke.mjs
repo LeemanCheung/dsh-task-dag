@@ -6,8 +6,8 @@ import { dirname, resolve } from 'node:path'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
 if (manifest.version !== '1.5.1') throw new Error('package version drifted')
-if (manifest.dsh?.compatibility?.dshReleases?.['0.1.2-rc.1'] !== 'unknown') {
-  throw new Error('DSH 0.1.2-rc.1 must remain unknown until isolated Web Profile validation')
+if (manifest.dsh?.compatibility?.dshReleases?.['0.1.2-rc.1'] !== 'compatible') {
+  throw new Error('DSH 0.1.2-rc.1 compatibility evidence drifted')
 }
 if (manifest.dsh?.client?.inject?.includes('@deepseek-ai/dsh-client-runtime')) {
   throw new Error('removed dsh-client-runtime package is still injected')
@@ -193,9 +193,10 @@ const list = {
   currentAddress: undefined,
 }
 const conversation = {
-  running: true,
-  chat: { nodes: { values: () => chatNodes } },
+  views: { get: target => target === 'chat' ? { legacy: { nodes: chatNodes } } : undefined },
+  activeTargets: new Set(['chat']),
 }
+const session = { running: true }
 const dictionary = {
   title: '任务 DAG',
   'trigger.aria': '打开任务 DAG，共 {count} 个拓扑节点',
@@ -315,7 +316,8 @@ const t = (key, values = {}) => Object.entries(values).reduce(
 const props = {
   sessionId: 'root',
   useSessions: select => select(list),
-  useSession: select => select(conversation),
+  useSession: select => select(session),
+  useConversation: select => select(conversation),
   t,
   ...registration.options.inject(),
 }
@@ -550,7 +552,11 @@ const emptyList = {
   current: 'solo',
   subagentsByParent: {},
 }
-const emptyConversation = { running: false, chat: { nodes: { values: () => [] } } }
+const emptySession = { running: false }
+const emptyConversation = {
+  views: { get: () => undefined },
+  activeTargets: new Set(),
+}
 const emptyMount = document.createElement('div')
 document.body.appendChild(emptyMount)
 const emptyRoot = createRoot(emptyMount)
@@ -559,7 +565,8 @@ await React.act(async () => {
     ...props,
     sessionId: 'solo',
     useSessions: select => select(emptyList),
-    useSession: select => select(emptyConversation),
+    useSession: select => select(emptySession),
+    useConversation: select => select(emptyConversation),
   }))
 })
 await React.act(async () => { emptyMount.querySelector('.dsh-task-dag-trigger').click() })

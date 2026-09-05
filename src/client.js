@@ -13,6 +13,7 @@ const {
 const PACKAGE_ID = 'dsh-task-dag';
 const NS = 'taskDag';
 const MODES = ['overview', 'team', 'workflow'];
+const EMPTY_CHAT_NODES = Object.freeze([]);
 const MESSAGE_DETAIL_LIMIT = 100;
 const { NODE_WIDTH, NODE_HEIGHT, buildGraph, graphLayout, normalizeStatus } = GRAPH_MODEL;
 const { TEAM_SNAPSHOT_KIND, createTeamSnapshotDefinition } = TEAM_PROJECTION;
@@ -1056,13 +1057,17 @@ function TaskDagDialog({
 }
 
 function TaskDagAction({
-  sessionId, useSession, useSessions, openSession, refreshCatalogs, setCatalogsOpen, t,
+  sessionId, useSession, useSessions, useConversation,
+  openSession, refreshCatalogs, setCatalogsOpen, t,
 }) {
   const summaries = useSessions(state => state.byId);
   const catalogs = useSessions(state => state.subagentsByParent);
   const ordinaryIds = useSessions(state => state.ids);
   const rootRunning = useSession(state => state.running);
-  const chatNodes = useSession(state => state.chat.nodes.values(), sameArray);
+  const chatNodes = useConversation(
+    state => state.views.get('chat')?.legacy.nodes ?? EMPTY_CHAT_NODES,
+    sameArray,
+  );
   const workflowNodes = useMemo(() => attachWorkflowDefinitions(
     chatNodes.filter(node => node.kind === 'workflow-run'),
     chatNodes,

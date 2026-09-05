@@ -35,6 +35,7 @@
       "inject": [
         "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-chat",
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-primitives",
         "@deepseek-ai/dsh-client-ui-renderer",
@@ -45,7 +46,7 @@
     "compatibility": {
       "dsh": ">=0.1.2-rc.1 <0.2.0",
       "dshReleases": {
-        "0.1.2-rc.1": "unknown"
+        "0.1.2-rc.1": "compatible"
       },
       "profiles": [
         "web"
@@ -77,6 +78,7 @@
   "peerDependencies": {
     "@deepseek-ai/dsh-api-session-controller": "^0.1.2-rc.1",
     "@deepseek-ai/dsh-client-locale": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-chat": "^0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-conversation": "^0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-primitives": "^0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-renderer": "^0.1.2-rc.1",
@@ -88,6 +90,7 @@
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-client-locale": { "optional": true },
     "@deepseek-ai/dsh-api-session-controller": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-chat": { "optional": true },
     "@deepseek-ai/dsh-client-ui-conversation": { "optional": true },
     "@deepseek-ai/dsh-client-ui-primitives": { "optional": true },
     "@deepseek-ai/dsh-client-ui-renderer": { "optional": true },

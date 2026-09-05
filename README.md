@@ -67,7 +67,7 @@ To reproduce the Workflow check, create a new top-level Session, invoke the `wor
 
 ## Install
 
-The `1.5.1` source targets DSH `0.1.2-rc.1` and uses that release's Session Controller, UI Renderer, and `uiConversation.events` registry. Its exact manifest entry remains `unknown` until an isolated Web Profile install, load, and page check is complete. Missing provider, model, or reasoning-effort values remain visibly missing rather than being replaced with defaults.
+The `1.5.1` source is interface-compatible with DSH `0.1.2-rc.1` and uses that release's Session Controller, UI Renderer, and `uiConversation.events` registry. The verified scope is recorded in [`docs/compatibility-0.1.2-rc.1.md`](docs/compatibility-0.1.2-rc.1.md). Missing provider, model, or reasoning-effort values remain visibly missing rather than being replaced with defaults.
 
 ```powershell
 dsh plugin --profile web add github:LeemanCheung/dsh-task-dag

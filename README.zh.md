@@ -75,10 +75,10 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag
 
 首次安装后重启一次当前 DSH Web 进程并刷新页面，随后可在 Session 标题栏看到“任务 DAG”入口。
 
-固定安装指定版本：
+当前源码版本为 `1.5.1`，对应 tag 尚未发布。需要固定安装时，可使用以下已存在的提交：
 
 ```powershell
-dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.5.0
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#8fe407f525823091523cd31bc940342feb83b7d1
 ```
 
 ## 使用任务图

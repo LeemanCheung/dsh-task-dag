@@ -75,10 +75,10 @@ dsh plugin --profile web add github:LeemanCheung/dsh-task-dag
 
 Restart the current DSH Web process once after the first installation, then refresh the page. The **Task DAG** action appears in the Session header.
 
-For a version-pinned installation:
+The source version is `1.5.1`; its release tag has not been published. For a pinned installation, use this existing commit:
 
 ```powershell
-dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#v1.5.0
+dsh plugin --profile web add github:LeemanCheung/dsh-task-dag#8fe407f525823091523cd31bc940342feb83b7d1
 ```
 
 ## Using the graph
